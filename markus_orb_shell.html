@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#030712" />
+  <title>MARKUS Orb Shell</title>
+  <style>
+    :root {
+      --bg: #030712;
+      --surface: rgba(3, 7, 18, 0.85);
+      --border: rgba(0, 240, 255, 0.25);
+      --cyan: #00f0ff;
+      --emerald: #00ff88;
+      --amber: #ffaa00;
+      --text-main: #e0f2fe;
+      --text-muted: #94a3b8;
+      --font-mono: 'Fira Code', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: radial-gradient(circle at center, #0a0f1e 0%, #030712 100%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: var(--text-main);
+    }
+    #orb-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 280px;
+      height: 280px;
+      z-index: 9999;
+      cursor: grab;
+    }
+    #orb-container.dragging { cursor: grabbing; }
+    #orb-canvas { width: 100%; height: 100%; filter: drop-shadow(0 0 30px var(--cyan)); }
+    .orb-label {
+      position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%);
+      font-family: var(--font-mono); font-size: 0.8rem; color: var(--emerald);
+      text-shadow: 0 0 10px rgba(0,255,136,0.5);
+    }
+    #chat-wrapper {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 480px;
+      height: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.1);
+      z-index: 9998;
+    }
+    #chat-messages {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .msg {
+      padding: 8px 12px; border-radius: 8px; max-width: 85%; font-size: 0.9rem;
+      line-height: 1.4; white-space: pre-wrap;
+    }
+    .msg.user { background: rgba(0, 240, 255, 0.15); align-self: flex-end; }
+    .msg.system { background: rgba(255, 170, 0, 0.12); align-self: center; }
+    #chat-input { display: flex; border-top: 1px solid var(--border); }
+    #chat-input input {
+      flex: 1; border: none; background: transparent; color: var(--text-main);
+      padding: 12px 16px; outline: none; font-family: var(--font-mono); font-size: 0.9rem;
+    }
+    #chat-input button {
+      background: var(--emerald); color: var(--bg); border: none;
+      padding: 0 20px; font-weight: bold; cursor: pointer;
+    }
+    #chat-input button:hover { box-shadow: 0 0 15px var(--emerald); }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;
+    }
+    .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .chip.cyan { color: var(--cyan); } .chip.emerald { color: var(--emerald); } .chip.amber { color: var(--amber); }
+  </style>
+</head>
+<body>
+  <div id="orb-container">
+    <canvas id="orb-canvas"></canvas>
+    <div class="orb-label">MARKUS NEURAL ORB</div>
+  </div>
+  <div id="chat-wrapper">
+    <div id="chat-messages"></div>
+    <div id="chat-input"><input type="text" id="msg-input" placeholder="Type a command or intent..." autocomplete="off" /><button id="send-btn">SEND</button></div>
+  </div>
+  <div id="status-bar" style="position:fixed;bottom:20px;left:20px;z-index:9997;display:flex;gap:8px;">
+    <div class="chip emerald"><span class="chip-dot"></span> LIVE</div>
+    <div class="chip cyan">Latency: 0ms</div>
+    <div class="chip amber">Model: laguna-s-2.1:free</div>
+  </div>
+
+  <script>
+    // === Draggable Orb ===
+    const orb = document.getElementById('orb-container');
+    let isDragging = false, offsetX = 0, offsetY = 0;
+    orb.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      orb.classList.add('dragging');
+      offsetX = e.clientX - orb.offsetLeft;
+      offsetY = e.clientY - orb.offsetTop;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      orb.style.left = (e.clientX - offsetX) + 'px';
+      orb.style.top = (e.clientY - offsetY) + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      orb.classList.remove('dragging');
+    });
+
+    // === Orb Particle Storm (same as before) ===
+    const canvas = document.getElementById('orb-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.height = 280;
+    const particles = [];
+    const N = 120;
+    for (let i = 0; i < N; i++) {
+      particles.push({
+        x: Math.random() * 280, y: Math.random() * 280,
+        vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6,
+        r: Math.random() * 2 + 0.5, glow: Math.random() * 0.5 + 0.5
+      });
+    }
+    function animateOrb() {
+      ctx.fillStyle = 'rgba(3, 7, 18, 0.15)';
+      ctx.fillRect(0, 0, 280, 280);
+      ctx.beginPath(); ctx.arc(140, 140, 110, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)'; ctx.lineWidth = 0.5;
+      ctx.shadowBlur = 20; ctx.shadowColor = '#00f0ff'; ctx.stroke();
+      ctx.save(); ctx.translate(140, 140); ctx.rotate(performance.now() / 4000);
+      ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0, 255, 136, 0.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+      ctx.restore();
+      const t = performance.now() / 1000;
+      ctx.beginPath(); ctx.arc(140, 140, 8 + Math.sin(t * 3) * 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#00ff88'; ctx.shadowBlur = 30; ctx.fill();
+      ctx.shadowBlur = 6;
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > 280) p.vx *= -1;
+        if (p.y < 0 || p.y > 280) p.vy *= -1;
+        const dx = p.x - 140, dy = p.y - 140;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        ctx.strokeStyle = dist < 110
+          ? `rgba(0, 255, 136, ${p.glow * 0.8})`
+          : `rgba(0, 240, 255, ${p.glow * 0.4})`;
+        ctx.lineWidth = p.r;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + p.vx * 10, p.y + p.vy * 10);
+        ctx.stroke();
+      });
+      ctx.shadowBlur = 0;
+      requestAnimationFrame(animateOrb);
+    }
+    animateOrb();
+
+    // === Chat Logic ===
+    const messagesEl = document.getElementById('chat-messages');
+    const inputEl = document.getElementById('msg-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    function addMessage(text, type = 'user') {
+      const msg = document.createElement('div');
+      msg.className = 'msg ' + type;
+      msg.textContent = text;
+      messagesEl.appendChild(msg);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      addMessage(text, 'user');
+      inputEl.value = '';
+      try {
+        const res = await fetch(`http://localhost:8128/api/chat?q=${encodeURIComponent(text)}`);
+        const data = await res.json();
+        addMessage("MARKUS: " + (data.reply || 'Processed'), 'system');
+      } catch (err) {
+        addMessage("Error: " + err.message, 'system');
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    // === Poll latency ===
+    setInterval(async () => {
+      const pingStart = Date.now();
+      try {
+        await fetch('http://localhost:8128/api/bootstrap');
+        const latency = Date.now() - pingStart;
+        document.querySelector('.chip:nth-child(2)').textContent = `Latency: ${latency}ms`;
+      } catch { document.querySelector('.chip:nth-child(2)').textContent = `Latency: —`; }
+    }, 2000);
+
+    inputEl.focus();
+  </script>
+</body>
+</html>
