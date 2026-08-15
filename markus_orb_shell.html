@@ -68,7 +68,7 @@
     #chat-input { display: flex; border-top: 1px solid var(--border); }
     #chat-input input {
       flex: 1; border: none; background: transparent; color: var(--text-main);
-      padding: 12px 16px; outline: none; font-family: var(--font-mono); font-size: 0.9rem;
+      padding: 12px 16px; outline: none; font-family: var(--font-mono); font-size: 1rem;
     }
     #chat-input button {
       background: var(--emerald); color: var(--bg); border: none;
@@ -77,7 +77,7 @@
     #chat-input button:hover { box-shadow: 0 0 15px var(--emerald); }
     .chip {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
     }
     .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -120,50 +120,68 @@
       orb.classList.remove('dragging');
     });
 
-    // === Orb Particle Storm (same as before) ===
-    const canvas = document.getElementById('orb-canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.height = 280;
-    const particles = [];
-    const N = 120;
-    for (let i = 0; i < N; i++) {
-      particles.push({
-        x: Math.random() * 280, y: Math.random() * 280,
-        vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6,
-        r: Math.random() * 2 + 0.5, glow: Math.random() * 0.5 + 0.5
-      });
+    // === Orb Animation Toggle ===
+    let orbAnimationEnabled = true;
+
+    function startOrbAnimation() {
+      const canvas = document.getElementById('orb-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.height = 280;
+      const particles = [];
+      const N = 120;
+      for (let i = 0; i < N; i++) {
+        particles.push({
+          x: Math.random() * 280, y: Math.random() * 280,
+          vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6,
+          r: Math.random() * 2 + 0.5, glow: Math.random() * 0.5 + 0.5
+        });
+      }
+      function animateOrb() {
+        if (!orbAnimationEnabled) return;
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.15)';
+        ctx.fillRect(0, 0, 280, 280);
+        ctx.beginPath(); ctx.arc(140, 140, 110, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)'; ctx.lineWidth = 0.5;
+        ctx.shadowBlur = 20; ctx.shadowColor = '#00f0ff'; ctx.stroke();
+        ctx.save(); ctx.translate(140, 140); ctx.rotate(performance.now() / 4000);
+        ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 255, 136, 0.5)'; ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.restore();
+        const t = performance.now() / 1000;
+        ctx.beginPath(); ctx.arc(140, 140, 8 + Math.sin(t * 3) * 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#00ff88'; ctx.shadowBlur = 30; ctx.fill();
+        ctx.shadowBlur = 6;
+        particles.forEach(p => {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0 || p.x > 280) p.vx *= -1;
+          if (p.y < 0 || p.y > 280) p.vy *= -1;
+          const dx = p.x - 140, dy = p.y - 140;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          ctx.strokeStyle = dist < 110
+            ? `rgba(0, 255, 136, ${p.glow * 0.8})`
+            : `rgba(0, 240, 255, ${p.glow * 0.4})`;
+          ctx.lineWidth = p.r;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + p.vx * 10, p.y + p.vy * 10);
+          ctx.stroke();
+        });
+        ctx.shadowBlur = 0;
+        requestAnimationFrame(animateOrb);
+      }
+      animateOrb();
     }
-    function animateOrb() {
-      ctx.fillStyle = 'rgba(3, 7, 18, 0.15)';
-      ctx.fillRect(0, 0, 280, 280);
-      ctx.beginPath(); ctx.arc(140, 140, 110, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)'; ctx.lineWidth = 0.5;
-      ctx.shadowBlur = 20; ctx.shadowColor = '#00f0ff'; ctx.stroke();
-      ctx.save(); ctx.translate(140, 140); ctx.rotate(performance.now() / 4000);
-      ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(0, 255, 136, 0.5)'; ctx.lineWidth = 0.8; ctx.stroke();
-      ctx.restore();
-      const t = performance.now() / 1000;
-      ctx.beginPath(); ctx.arc(140, 140, 8 + Math.sin(t * 3) * 2, 0, Math.PI * 2);
-      ctx.fillStyle = '#00ff88'; ctx.shadowBlur = 30; ctx.fill();
-      ctx.shadowBlur = 6;
-      particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > 280) p.vx *= -1;
-        if (p.y < 0 || p.y > 280) p.vy *= -1;
-        const dx = p.x - 140, dy = p.y - 140;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        ctx.strokeStyle = dist < 110
-          ? `rgba(0, 255, 136, ${p.glow * 0.8})`
-          : `rgba(0, 240, 255, ${p.glow * 0.4})`;
-        ctx.lineWidth = p.r;
-        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + p.vx * 10, p.y + p.vy * 10);
-        ctx.stroke();
-      });
-      ctx.shadowBlur = 0;
-      requestAnimationFrame(animateOrb);
-    }
-    animateOrb();
+
+    // Check env flag via API or localStorage
+    fetch('http://localhost:8128/api/bootstrap')
+      .then(r => r.json())
+      .then(d => {
+        if (d.disable_orb === true || localStorage.getItem('DISABLE_ORB') === '1') {
+          orbAnimationEnabled = false;
+          document.getElementById('orb-canvas').style.display = 'none';
+        } else {
+          startOrbAnimation();
+        }
+      })
+      .catch(() => startOrbAnimation());
 
     // === Chat Logic ===
     const messagesEl = document.getElementById('chat-messages');
