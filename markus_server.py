@@ -33,6 +33,7 @@ from markus_speculative_cache import MarkusSpeculativeCache
 from markus_prompt_matrix import MarkusPromptSynthesisMatrix
 from markus_capabilities import CapabilityRegistry
 from markus_capability_synthesizer import MarkusCapabilitySynthesizer
+from markus_thors import ThorsEngine, create_thors_tables
 
 logger = logging.getLogger("Markus.Server")
 
@@ -55,6 +56,8 @@ complexity_governor = MarkusComplexityGovernor()
 speculative_cache = MarkusSpeculativeCache()
 prompt_matrix = MarkusPromptSynthesisMatrix(db=kernel.memory.db)
 capability_synthesizer = MarkusCapabilitySynthesizer(registry=CapabilityRegistry(), sandbox=sandbox)
+thors_engine = ThorsEngine(cortex_db=kernel.memory.db)
+create_thors_tables(kernel.memory.db)
 
 active_dags: Dict[str, TaskDAG] = {
     "default_dag": TaskDAG("default_dag")
@@ -73,6 +76,19 @@ def broadcast_sse_event(event_type: str, data: Dict[str, Any]) -> None:
             except Exception:
                 sse_subscribers.remove(q)
 
+def _read_body(self) -> str:
+    """Read request body once. Safe for multiple calls (returns cached)."""
+    if not hasattr(self, '_thors_body_read'):
+        content_length = int(self.headers.get("Content-Length", 0))
+        self._thors_body_read = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+    return self._thors_body_read
+
+
+def _readBody(self) -> str:
+    """Read request body once. Safe for multiple calls (returns cached)."""
+    return _read_body(self)
+
+
 class MarkusRequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self, status: int = 200, content_type: str = "application/json") -> None:
         self.send_response(status)
@@ -86,6 +102,18 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
         self._set_headers(200)
 
     def do_GET(self) -> None:
+        # [THORS] Security gate: detect and retaliate against attackers
+        client_ip = self.client_address[0]
+        if thors_engine.is_blocked(client_ip):
+            verdict = thors_engine.analyze_request("GET", self.path, dict(self.headers), None, client_ip)
+            thors_engine.retaliate(verdict, self)
+            return
+        verdict = thors_engine.analyze_request("GET", self.path, dict(self.headers), None, client_ip)
+        if verdict.threat_level > 0:
+            thors_engine.retaliate(verdict, self)
+            return
+        # [END THORS]
+
         if self.path == "/" or self.path == "/ui" or self.path == "/nexus" or self.path == "/markus_nexus.html":
             html_path = Path(__file__).parent / "markus_nexus.html"
             if html_path.exists():
@@ -181,8 +209,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(res).encode("utf-8"))
 
         elif self.path == "/api/speculation/precompute":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 intent_text = data.get("intent", "")
@@ -272,9 +299,21 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"error": "Not Found"}')
 
     def do_POST(self) -> None:
+        # [THORS] Security gate: read body once, detect and retaliate against attackers
+        client_ip = self.client_address[0]
+        body = _read_body(self)
+        if thors_engine.is_blocked(client_ip):
+            verdict = thors_engine.analyze_request("POST", self.path, dict(self.headers), body, client_ip)
+            thors_engine.retaliate(verdict, self)
+            return
+        verdict = thors_engine.analyze_request("POST", self.path, dict(self.headers), body, client_ip)
+        if verdict.threat_level > 0:
+            thors_engine.retaliate(verdict, self)
+            return
+        # [END THORS]
+
         if self.path == "/api/intent":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            # body already read by Thors security gate above
             try:
                 data = json.loads(body) if body else {}
                 prompt = data.get("prompt", "")
@@ -337,8 +376,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/sandbox/eval":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 code = data.get("code", "")
@@ -363,8 +401,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/prompt/synthesize":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 user_input = data.get("prompt", "")
@@ -395,8 +432,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/audio/synthesize":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 preset = data.get("preset", "INTENT_DISPATCH")
@@ -418,8 +454,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/checkpoints/create":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 reason = data.get("reason", "API_TRIGGERED")
@@ -445,8 +480,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/checkpoints/restore":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 cid = data.get("checkpoint_id")
@@ -471,8 +505,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/consensus/arbitrate":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 raw_cands = data.get("candidates", [])
@@ -520,8 +553,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/context/prune":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 raw_context = data.get("context", "")
@@ -571,8 +603,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/dag/step":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 dag_id = data.get("dag_id", "default_dag")
@@ -600,8 +631,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/dag/execute":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
             try:
                 data = json.loads(body) if body else {}
                 dag_id = data.get("dag_id", f"dag_{int(time.time())}")
@@ -655,8 +685,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
         elif self.path == "/api/cron":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
 
             try:
                 data = json.loads(body) if body else {}

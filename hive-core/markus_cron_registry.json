@@ -30,5 +30,14 @@
     "event_trigger": null,
     "payload_keys": ["dice_roll", "action", "debate_verdict"],
     "max_runtime": 120
+  },
+  {
+    "id": "markus-upgrade-start-postbeat",
+    "category": "AUTONOMOUS_DEVELOPMENT",
+    "schedule": "postbeat",
+    "event_trigger": "hermes.hook.postbeat",
+    "payload_keys": ["trigger", "cycle_id", "timestamp"],
+    "max_runtime": 120,
+    "hook_script": "markus_upgrade_start.py"
   }
 ]
