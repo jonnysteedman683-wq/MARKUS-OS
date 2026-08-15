@@ -60,10 +60,7 @@ active_dags: Dict[str, TaskDAG] = {
     "default_dag": TaskDAG("default_dag")
 }
 
-# Public alias for request handler (used by standalone bootstrap)
-Handler = MarkusRequestHandler
-
-# SSE event broadcast listeners
+# Public aliases for SSE infrastructure
 sse_subscribers: List[queue.Queue] = []
 sse_lock = threading.Lock()
 
@@ -731,6 +728,10 @@ def run_server(port: int = 8128) -> None:
     except KeyboardInterrupt:
         print("[MARKUS-OS] API Server stopped cleanly.")
         httpd.server_close()
+
+# Public aliases
+Handler = MarkusRequestHandler
+SseSubscribers = sse_subscribers
 
 if __name__ == "__main__":
     run_server()
