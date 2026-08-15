@@ -244,6 +244,7 @@ class HybridCronAgent:
                 if task["id"] == "markus-autonomous-dice-engine":
                     # Run the latency-weighted multi-upgrade engine
                     self._run_co_evolution_cycle(task)
+                    result = {"status": "cycle_complete"}
                 else:
                     result = self._execute_task(task, source="time_gate")
                 self.last_run[task["id"]] = time.time()
