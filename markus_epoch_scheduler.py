@@ -219,10 +219,11 @@ class EpochScheduler:
             elif run_fn_name == "run_redteam_epoch":
                 from markus_redteam import RedTeamOrchestrator
                 orch = RedTeamOrchestrator()
-                # Reduce scope for epoch: fewer files, fewer mutations
+                # Reduced scope for epoch: only 5 files, 2 mutations each
                 result = asyncio.run(orch.run_redteam_cycle(
                     target_dirs=[str(REPO_ROOT)],
-                    mutations_per_file=3  # Smaller for epoch
+                    mutations_per_file=2,  # Smaller for epoch
+                    max_files=5  # Only test 5 files per epoch
                 ))
                 return {
                     "success": True,
