@@ -163,7 +163,9 @@ class StageExecutor:
                 [sys.executable, "-c",
                  "import sys; sys.path.insert(0, '.'); "
                  "from markus_kernel import MarkusKernel; "
-                 "k = MarkusKernel(); print(f'Kernel OK: mode={k.mode}')"],
+                 "k = MarkusKernel(); "
+                 "k.memory.set_register('OS_STATUS', 'BOOTED'); "
+                 f\"print(f'Kernel OK: running={{k.running}}, procs={{len(k.process_table)}}, version={{k.memory.get_register(\\\"VERSION\\\", \\\"unknown\\\")}}')\"],
                 capture_output=True, text=True, timeout=30,
                 cwd=str(self.repo_root)
             )
@@ -176,13 +178,12 @@ class StageExecutor:
     def stage_4_resync_canvas(self) -> Tuple[bool, str]:
         """Re-sync CANVAS/Electron wrapper."""
         try:
+            # During dev the wrapper files are in the repo root;
+            # markus-os-electron/ is the packaging staging dir.
             electron_dir = self.repo_root / "markus-os-electron"
-            if not electron_dir.exists():
-                return False, "markus-os-electron dir not found"
-            pkg_json = electron_dir / "package.json"
+            pkg_json = self.repo_root / "package.json"  # dev-mode package
             if not pkg_json.exists():
-                return False, "electron package.json not found"
-            # Validate JSON
+                return False, "package.json not found at repo root"
             pkg = json.loads(pkg_json.read_text())
             deps = pkg.get("dependencies", {})
             dev_deps = pkg.get("devDependencies", {})
