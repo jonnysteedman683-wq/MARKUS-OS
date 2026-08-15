@@ -89,6 +89,18 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
         self._set_headers(200)
 
     def do_GET(self) -> None:
+        # [THORS] Security gate: detect and retaliate against attackers
+        client_ip = self.client_address[0]
+        if thors_engine.is_blocked(client_ip):
+            verdict = thors_engine.analyze_request("GET", self.path, dict(self.headers), None, client_ip)
+            thors_engine.retaliate(verdict, self)
+            return
+        verdict = thors_engine.analyze_request("GET", self.path, dict(self.headers), None, client_ip)
+        if verdict.threat_level > 0:
+            thors_engine.retaliate(verdict, self)
+            return
+        # [END THORS]
+
         if self.path == "/" or self.path == "/ui" or self.path == "/nexus" or self.path == "/markus_nexus.html":
             html_path = Path(__file__).parent / "markus_nexus.html"
             if html_path.exists():
