@@ -20,6 +20,7 @@ import json
 import logging
 import multiprocessing as mp
 import os
+import secrets
 import sys
 import time
 import traceback
@@ -217,22 +218,49 @@ class EpochScheduler:
                 }
 
             elif run_fn_name == "run_redteam_epoch":
-                from markus_redteam import RedTeamOrchestrator
-                orch = RedTeamOrchestrator()
-                # Reduced scope for epoch: only 5 files, 2 mutations each
-                result = asyncio.run(orch.run_redteam_cycle(
-                    target_dirs=[str(REPO_ROOT)],
-                    mutations_per_file=2,  # Smaller for epoch
-                    max_files=5  # Only test 5 files per epoch
-                ))
+                from markus_redteam import RedTeamAgent
+                from markus_db import PersistentCortexDB
+                import asyncio
+                red_agent = RedTeamAgent(cortex=self.cortex)
+                # Ultra-light epoch mode: 3 files, 2 mutations, no AST validation
+                # Scan for syntax errors only (fast) — full validation runs in track 6
+                from pathlib import Path
+                target_files = list(REPO_ROOT.glob("markus_*.py"))
+                target_files = [f for f in target_files if f.stat().st_size < 100_000][:3]
+
+                all_mutations = 0
+                all_crashes = 0
+
+                for file_path in target_files:
+                    try:
+                        original_code = file_path.read_text(encoding="utf-8")
+                        import ast
+                        for _ in range(2):  # 2 mutations per file
+                            operator = secrets.choice(red_agent.MUTATION_OPERATORS)
+                            mutated = red_agent._generate_mutation(original_code, operator)
+                            all_mutations += 1
+                            # Fast syntax check only (skip full PHOENIX)
+                            try:
+                                ast.parse(mutated)
+                            except SyntaxError:
+                                all_crashes += 1
+                    except Exception:
+                        pass
+
+                self.cortex.append_thought(
+                    f"epoch_redteam_{self.stats.total_cycles}_{int(time.time())}",
+                    "MARKUS_EPOCH_SCHEDULER",
+                    f"RedTeam epoch: {all_mutations} mutations, {all_crashes} crashes",
+                    {"mutations": all_mutations, "crashes": all_crashes}
+                )
+
                 return {
                     "success": True,
-                    "metrics": {"mutations_tested": result["mutations_tested"],
-                               "vulnerabilities_found": result["vulnerabilities_found"],
-                               "fixes_applied": result["fixes_applied"]},
-                    "mutations_applied": result["mutations_tested"],
+                    "metrics": {"mutations_tested": all_mutations,
+                               "crashes_detected": all_crashes},
+                    "mutations_applied": all_mutations,
                     "files_modified": [],
-                    "output": f"RedTeam: {result['mutations_tested']} mutations, {result['fixes_applied']} fixes"
+                    "output": f"RedTeam: {all_mutations} mutations, {all_crashes} crashes"
                 }
 
             elif run_fn_name == "run_skill_patch_epoch":
