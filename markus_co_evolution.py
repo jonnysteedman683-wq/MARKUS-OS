@@ -47,6 +47,9 @@ from markus_debate_pipeline import MarkusDebatePipeline
 from markus_cortex_replication import MarkusCortexReplicator
 from markus_ring_buffer import MarkusSharedRingBuffer
 from markus_kernel import MarkusKernel
+from markus_reflexion import ReflexionLoopEngine
+from markus_population_dice import PopulationDiceEngine
+from markus_redteam import RedTeamOrchestrator
 
 logger = logging.getLogger("Markus.CoEvolution")
 
