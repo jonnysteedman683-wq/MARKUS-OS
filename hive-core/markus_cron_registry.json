@@ -22,5 +22,13 @@
     "event_trigger": "tcp://mesh-discovery:8129",
     "payload_keys": ["node_id", "peers"],
     "max_runtime": 30
+  },
+  {
+    "id": "markus-autonomous-dice-engine",
+    "category": "AUTONOMOUS_DEVELOPMENT",
+    "schedule": "2min",
+    "event_trigger": null,
+    "payload_keys": ["dice_roll", "action", "debate_verdict"],
+    "max_runtime": 120
   }
 ]

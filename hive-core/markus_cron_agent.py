@@ -240,9 +240,47 @@ class HybridCronAgent:
         for task in self.registry:
             interval_s = self._schedule_to_seconds(task["schedule"])
             if self._should_run(task["id"], interval_s):
-                result = self._execute_task(task, source="time_gate")
+                # Special handling for auto-dice-engine
+                if task["id"] == "markus-autonomous-dice-engine":
+                    # Run the latency-weighted multi-upgrade engine
+                    self._run_co_evolution_cycle(task)
+                else:
+                    result = self._execute_task(task, source="time_gate")
                 self.last_run[task["id"]] = time.time()
-                logger.info(f"Executed {task['id']}: {result['status']}")
+                logger.info(f"Executed {task['id']}: {result.get('status', 'cycle_complete')}")
+
+    def _run_co_evolution_cycle(self, task: Dict[str, Any]) -> None:
+        """Execute the co-evolution cycle (dice → debate → validate → skill patch → research)."""
+        try:
+            import subprocess
+            import asyncio
+            
+            # Run the latency multi-upgrade engine
+            result = subprocess.run(
+                [sys.executable, "markus_latency_multi_upgrade.py"],
+                capture_output=True, text=True, timeout=60,
+                cwd=str(Path(__file__).resolve().parent.parent)
+            )
+            
+            self.db.append_thought(
+                f"coev_cycle_{int(time.time())}",
+                "MARKUS_CRON_AGENT",
+                f"Co-evolution cycle triggered by cron task {task['id']}",
+                {
+                    "task_id": task["id"],
+                    "exit_code": result.returncode,
+                    "stdout_tail": result.stdout[-500:] if result.stdout else "",
+                    "stderr_tail": result.stderr[-500:] if result.stderr else ""
+                }
+            )
+        except Exception as e:
+            logger.error(f"Co-evolution cycle error: {e}")
+            self.db.append_thought(
+                f"coev_error_{int(time.time())}",
+                "MARKUS_CRON_AGENT",
+                f"Co-evolution cycle failed: {str(e)}",
+                {"task_id": task["id"], "error": True}
+            )
 
     def _cron_loop(self) -> None:
         """Main cron dispatch loop."""
