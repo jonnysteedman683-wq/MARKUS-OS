@@ -102,6 +102,13 @@ class MarkusTCPConnectionPool:
     LRU-evicting TCP connection pool for MARKUS TCP mesh reliability.
     Async-ready with auto-reconnect and periodic health checks.
     
+    Features:
+    - LRU eviction when pool exceeds max_connections
+    - Automatic reconnection on failure
+    - Background health checks every 30 seconds (configurable)
+    - Connection reuse for improved performance
+    - Async context manager support
+    
     Usage:
         pool = MarkusTCPConnectionPool(host="192.168.1.100", port=8131)
         
@@ -151,7 +158,7 @@ class MarkusTCPConnectionPool:
         
         # Background health check task
         self._health_task: Optional[asyncio.Task] = None
-        self._running = False
+        self._shutdown_event = asyncio.Event()
 
         # Statistics
         self._stats = {
@@ -281,22 +288,28 @@ class MarkusTCPConnectionPool:
 
     async def start(self) -> None:
         """Start the connection pool and background health check task."""
-        if self._running:
-            return
+        if self._shutdown_event.is_set():
+            self._shutdown_event.clear()
         
-        self._running = True
+        # Create async lock if needed
+        if self._async_lock is None:
+            self._async_lock = asyncio.Lock()
+        
         self._health_task = asyncio.create_task(self._health_check_loop())
         logger.info(f"Started TCP connection pool for {self.host}:{self.port}")
 
     async def stop(self) -> None:
         """Stop the connection pool and cleanup all connections."""
-        self._running = False
+        # Signal shutdown
+        self._shutdown_event.set()
         
+        # Cancel health check task
         if self._health_task:
             self._health_task.cancel()
             try:
-                await self._health_task
-            except asyncio.CancelledError:
+                # Use wait_for with timeout to prevent hanging
+                await asyncio.wait_for(self._health_task, timeout=2.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
                 pass
             self._health_task = None
 
@@ -314,9 +327,18 @@ class MarkusTCPConnectionPool:
 
     async def _health_check_loop(self) -> None:
         """Background task to periodically check connection health."""
-        while self._running:
+        check_interval = self.config.health_check_interval
+        while not self._shutdown_event.is_set():
             try:
-                await asyncio.sleep(self.config.health_check_interval)
+                # Sleep in small increments to respond to shutdown quickly
+                for _ in range(int(check_interval)):
+                    if self._shutdown_event.is_set():
+                        return
+                    await asyncio.sleep(1.0)
+                
+                if self._shutdown_event.is_set():
+                    break
+                    
                 await self._perform_health_checks()
             except asyncio.CancelledError:
                 break
@@ -352,19 +374,23 @@ class MarkusTCPConnectionPool:
                                 # Set blocking to false to test
                                 conn.sock.setblocking(False)
                                 try:
-                                    # This will raise blocking error if connected
                                     conn.sock.send(b'')
                                 except (BlockingIOError, ConnectionResetError, BrokenPipeError):
                                     # Socket is still connected
                                     pass
                                 except OSError:
-                                    # Socket disconnected
-                                    conn.state = ConnectionState.FAILED
-                                    self._stats["health_checks_failed"] += 1
-                                    # Reset connection to trigger reconnect
-                                    conn.sock = None
-                                finally:
                                     conn.sock.setblocking(True)
+                                    # Socket disconnected, try to reconnect
+                                    if self._reconnect_socket(conn):
+                                        self._stats["health_checks_passed"] += 1
+                                    else:
+                                        self._stats["health_checks_failed"] += 1
+                                    return
+                                finally:
+                                    if conn.sock:
+                                        conn.sock.setblocking(True)
+                            
+                            self._stats["health_checks_passed"] += 1
                         except Exception as e:
                             logger.debug(f"Health check detected stale connection {key}: {e}")
                             conn.state = ConnectionState.FAILED
