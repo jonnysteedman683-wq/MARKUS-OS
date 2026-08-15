@@ -331,17 +331,34 @@ class ThorsEngine:
         If the verdict indicates a threat, call retaliate() to apply countermeasures.
         """
 
-        # Early block check
+        # Early block check — if IP is already blocked, fast-fail at current level
         if self._is_ip_blocked(client_ip):
             profile = self._get_or_create_profile(client_ip)
+            # Escalate based on profile, not hardcoded DRAGON_RAGE
+            block_remaining = profile.block_expires - time.time()
+            if profile.attack_count >= 10:
+                thor_class = ThorClass.DRAGON_RAGE
+                threat_level = 5
+            elif profile.attack_count >= 5:
+                thor_class = ThorClass.ENDER_PEARL
+                threat_level = 4
+            elif profile.last_thor == ThorClass.DRAGON_RAGE:
+                thor_class = ThorClass.DRAGON_RAGE
+                threat_level = 5
+            elif profile.last_thor and profile.last_thor.value >= ThorClass.STONE_GOLEM.value:
+                thor_class = profile.last_thor
+                threat_level = profile.last_thor.value
+            else:
+                thor_class = profile.last_thor or ThorClass.LIGHTNING
+                threat_level = thor_class.value
             return AttackVerdict(
-                threat_level=5,
+                threat_level=threat_level,
                 attack_type=None,
-                thor_class=ThorClass.DRAGON_RAGE,
-                confidence=0.95,
-                fingerprint={"ip": client_ip, "reason": "already_blocked"},
+                thor_class=thor_class,
+                confidence=0.9,
+                fingerprint={"ip": client_ip, "reason": "already_blocked", "block_remaining": block_remaining},
                 retaliation_needed=True,
-                reason="IP already under Thor block",
+                reason=f"IP already under {thor_class.name} block ({block_remaining:.0f}s remaining)",
             )
 
         suspicious_patterns: List[Tuple[str, str]] = []
