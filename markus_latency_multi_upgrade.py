@@ -372,8 +372,11 @@ Use when {target_agent} activity needs autonomous optimization.
                 reflection_notes.append("🐝 DevSwarm: Self-healing monitoring active")
             
             # 5. Identify gaps
-            cortex_size = self.cortex.count_docs()
-            if cortex_size > 1000:
+            try:
+                cortex_size = self.cortex.search_thoughts("MATCH", limit=1000).__len__() if hasattr(self.cortex, "search_thoughts") else 100
+            except Exception:
+                cortex_size = 100  # Default assumption
+            if cortex_size > 500:
                 reflection_notes.append(
                     f"⚠️ Cortex growth: {cortex_size} thoughts — consider TTL pruning"
                 )
@@ -485,7 +488,8 @@ Use when {target_agent} activity needs autonomous optimization.
                 
                 # Execute the upgrade
                 start_t = time.perf_counter()
-                success = self._execute_bracket_upgrade(upgrade_type)
+                upgrade_context: Dict[str, Any] = {"upgrade_type": upgrade_type, "bracket_id": bracket.bracket_id}
+                success = self._execute_bracket_upgrade(upgrade_type, upgrade_context)
                 elapsed = (time.perf_counter() - start_t) * 1000
                 
                 result = UpgradeResult(
@@ -563,7 +567,7 @@ Use when {target_agent} activity needs autonomous optimization.
             }
         }
 
-    def _execute_bracket_upgrade(self, upgrade_type: str) -> bool:
+    def _execute_bracket_upgrade(self, upgrade_type: str, context: Dict[str, Any] = None) -> bool:
         """Execute a specific upgrade type from a bracket."""
         try:
             if upgrade_type == "UI_PATCH":
