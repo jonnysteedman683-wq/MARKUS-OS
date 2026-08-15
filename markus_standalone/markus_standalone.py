@@ -13,8 +13,8 @@ from http.server import ThreadingHTTPServer
 repo_root = Path.cwd()
 sys.path.insert(0, str(repo_root))
 
-import markus_kernel  # This initializes `kernel` as module-level variable
-_kernel = markus_kernel.kernel  # Access the initialized kernel instance
+import markus_kernel
+_kernel = markus_kernel.kernel
 
 from markus_server import (
     MARKUS_HTTP_PORT,
