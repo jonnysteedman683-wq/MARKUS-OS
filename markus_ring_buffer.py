@@ -48,13 +48,19 @@ class MarkusSharedRingBuffer:
                 existing = shared_memory.SharedMemory(name=self.name)
                 existing.close()
                 existing.unlink()
-            except FileNotFoundError:
+            except Exception:
                 pass
 
-            self.shm = shared_memory.SharedMemory(name=self.name, create=True, size=self.total_size)
-            # Initialize header: magic, capacity, slot_size, write_pos=0, read_pos=0
-            header_bytes = struct.pack(HEADER_FORMAT, MAGIC_NUMBER, self.capacity, self.slot_size, 0, 0)
-            self.shm.buf[:HEADER_SIZE] = header_bytes
+            try:
+                self.shm = shared_memory.SharedMemory(name=self.name, create=True, size=self.total_size)
+                # Initialize header: magic, capacity, slot_size, write_pos=0, read_pos=0
+                header_bytes = struct.pack(HEADER_FORMAT, MAGIC_NUMBER, self.capacity, self.slot_size, 0, 0)
+                self.shm.buf[:HEADER_SIZE] = header_bytes
+                self.is_owner = True
+            except FileExistsError:
+                # Windows shared memory unlink edge-case: attach directly to existing buffer
+                self.shm = shared_memory.SharedMemory(name=self.name, create=False)
+                self.is_owner = False
         else:
             self.shm = shared_memory.SharedMemory(name=self.name, create=False)
             magic, cap, s_size, _, _ = struct.unpack(HEADER_FORMAT, self.shm.buf[:HEADER_SIZE])
