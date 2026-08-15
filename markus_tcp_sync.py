@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
-"""MARKUS OS TCP Reliability Mode with Lamport Clock Anti-Entropy Sync"""
+"""MARKUS OS TCP Reliability Mode with Lamport Clock Anti-Entropy Sync
+Enhanced with TCP Connection Pooling for high-frequency syncs.
+"""
 from __future__ import annotations
 import json
 import logging
 import socket
 import threading
 import time
+import uuid
+import asyncio
 from typing import Any, Dict, Optional, Set
 from dataclasses import dataclass, field
 
 from markus_cortex_replication import MarkusCortexReplicator, GOSSIP_INTERVAL
 
 logger = logging.getLogger("Markus.TCPSync")
+
+# Import connection pool
+try:
+    from markus_connection_pool import MarkusTCPConnectionPool, ConnectionPoolConfig
+    POOL_AVAILABLE = True
+except ImportError:
+    POOL_AVAILABLE = False
 
 RECONCILIATION_INTERVAL = 5.0
 BATCH_SIZE = 50
@@ -211,6 +222,51 @@ class ReliableCortexReplicator(MarkusCortexReplicator):
         self._fallback_lock = threading.Lock()
         
         self._init_tcp_socket()
+        
+        # Connection pool for TCP reliability (optional enhancement)
+        self._connection_pools: Dict[str, MarkusTCPConnectionPool] = {}
+        self._pool_lock = threading.RLock()
+        self._shutdown_event = asyncio.Event()
+    
+    def _get_pool(self, host: str, port: int) -> MarkusTCPConnectionPool:
+        """Get or create a connection pool for a remote peer."""
+        if not POOL_AVAILABLE:
+            raise RuntimeError("markus_connection_pool not available")
+        
+        key = f"{host}:{port}"
+        
+        with self._pool_lock:
+            if key not in self._connection_pools:
+                pool = MarkusTCPConnectionPool(
+                    host=host,
+                    port=port,
+                    pool_size=self._pool_size,
+                    health_check_interval=self._health_check_interval,
+                )
+                self._connection_pools[key] = pool
+                logger.debug(f"Created connection pool for {key}")
+            return self._connection_pools[key]
+    
+    async def start_pools(self) -> None:
+        """Start all connection pools."""
+        if not POOL_AVAILABLE:
+            return
+        
+        for pool in self._connection_pools.values():
+            await pool.start()
+        logger.info(f"Started {len(self._connection_pools)} TCP connection pools")
+    
+    async def stop_pools(self) -> None:
+        """Stop all connection pools."""
+        if not POOL_AVAILABLE:
+            return
+        
+        self._shutdown_event.set()
+        
+        for pool in self._connection_pools.values():
+            await pool.stop()
+        
+        logger.info(f"Stopped {len(self._connection_pools)} TCP connection pools")
     
     def _init_tcp_socket(self) -> None:
         """Initialize TCP socket for reliable sync channel."""
