@@ -35,7 +35,6 @@ from markus_db import PersistentCortexDB
 from markus_sandbox import MarkusProcessSandbox
 from markus_resilience import CircuitBreakerManager
 from markus_cortex_skill_patcher import CortexSkillPatcher, SkillPatch
-from markus_skill_analyzer import SkillAnalyzer
 
 # __file__ guard for PHOENIX CLI runtime evaluation
 REPO_ROOT = Path(os.path.dirname(os.path.abspath(__file__) if "__file__" in dir() else os.getcwd()))
