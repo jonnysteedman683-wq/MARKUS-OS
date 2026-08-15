@@ -130,7 +130,7 @@ class LatencyMultiUpgradeEngine:
                 latency_min=lat_min,
                 latency_max=lat_max,
                 upgrade_types=dict(zip(upgrades["types"], upgrades["weights"])),
-                required_skill_action=["A.upgrade", "B.edit", "C.invent", "D.explore"][i-1]
+                required_skill_action=["A.upgrade", "B.edit", "C.invent", "D.explore"][(i-1) % 4]
             )
             configs.append(config)
         
