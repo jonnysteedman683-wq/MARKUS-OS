@@ -389,9 +389,8 @@ Use when {target_agent} activity needs autonomous optimization.
                 missing_pieces.append("External web research integration for Action 5")
             
             # Check for hierarchical task decomposition
-            if not any("hierarchical" in f.read_text().lower() 
-                       for f in [REPO_ROOT / "markus_task_dag.py"] 
-                       if f.exists()):
+            hier_file = REPO_ROOT / "markus_hierarchical_decomposer.py"
+            if not hier_file.exists():
                 missing_pieces.append("Hierarchical task decomposition for complex upgrades")
             
             if missing_pieces:
