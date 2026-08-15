@@ -9,3 +9,6 @@ venv/
 
 # SQLite
 *.db
+
+# MARKUS runtime private vault/artifacts
+markus_private/
