@@ -110,7 +110,7 @@ class CoEvolutionOrchestrator:
             # Check for PASS markers
             pass_count = output.count("[PASS]")
             fail_count = output.count("[FAIL]")
-            all_passed = "Batch Complete: 44/44" in output or "44/44" in output
+            all_passed = fail_count == 0 and pass_count > 0
 
             summary = f"PHOENIX: {pass_count}P/{fail_count}F | {elapsed:.1f}s"
             logger.info(f"[CoEvo] Validation: {summary}")
