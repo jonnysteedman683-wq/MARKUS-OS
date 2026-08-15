@@ -55,6 +55,57 @@ class MarkusDiceEngine:
         self.tick_interval = tick_interval_s
         self._running = False
         self.trigger_log: List[Dict[str, Any]] = []
+        # Reward-weighted dice
+        self._action_rewards: Dict[str, float] = {}
+        self._action_counts: Dict[str, int] = {}
+        self._cycle_latency: List[float] = []
+        self._last_cycle_start: float = 0.0
+
+    def roll_reward_weighted_dice(self) -> int:
+        """Reward-weighted dice: biases toward historically successful actions."""
+        import math
+        base_probs = {i: 1/6 for i in range(1, 7)}
+        epsilon = 0.3  # 30% exploration
+        total_count = sum(self._action_counts.values())
+        if total_count > 3:
+            for action_int, label in self.ACTIONS.items():
+                if label in self._action_rewards:
+                    reward_avg = self._action_rewards[label] / max(self._action_counts[label], 1)
+                    weight = epsilon + (1 - epsilon) * reward_avg
+                    base_probs[action_int] = weight
+        total = sum(base_probs.values())
+        normalized = {k: v / total for k, v in base_probs.items()}
+        rand = secrets.randbelow(1000000) / 1000000.0
+        cumulative = 0.0
+        for action_int in range(1, 7):
+            cumulative += normalized[action_int]
+            if rand <= cumulative:
+                return action_int
+        return 6
+
+    def record_action_reward(self, action_label: str, reward: float) -> None:
+        """Record a reward (0.0-1.0) for a completed action to update weighting."""
+        if action_label not in self._action_rewards:
+            self._action_rewards[action_label] = 0.0
+            self._action_counts[action_label] = 0
+        alpha = 0.2  # learning rate
+        self._action_rewards[action_label] = (
+            (1 - alpha) * self._action_rewards[action_label] + alpha * reward
+        )
+        self._action_counts[action_label] += 1
+        self.cortex.append_thought(
+            f"reward_{int(time.time())}", "MARKUS_DICE_ENGINE",
+            f"Reward recorded: {action_label} = {reward:.3f}",
+            {"action": action_label, "reward": reward}
+        )
+
+    def get_action_stats(self) -> Dict[str, Any]:
+        """Return reward-weighted dice statistics."""
+        return {
+            "action_rewards": dict(self._action_rewards),
+            "action_counts": dict(self._action_counts),
+            "avg_cycle_latency_ms": round(sum(self._cycle_latency) / max(len(self._cycle_latency), 1), 2) if self._cycle_latency else 0.0,
+        }
 
     @staticmethod
     def roll_dice() -> int:
@@ -111,8 +162,10 @@ class MarkusDiceEngine:
         return prompts.get(choice, f"Unknown action: {choice}")
 
     async def execute_dice_cycle(self, max_rerolls: int = 5) -> Tuple[int, List[int]]:
+        cycle_start = time.perf_counter()
+        self._last_cycle_start = time.time()
         rolls: List[int] = []
-        current_roll = self.roll_dice()
+        current_roll = self.roll_reward_weighted_dice()
         rolls.append(current_roll)
 
         reroll_count = 0
@@ -185,6 +238,12 @@ class MarkusDiceEngine:
         print(f"[DICE] Debate verdict: {verdict.winning_candidate} | "
               f"Confidence: {verdict.confidence:.1%} | "
               f"Consensus: {'REACH' if verdict.consensus_reached else 'BLOCKED'}")
+
+        # Track cycle latency
+        cycle_elapsed = time.perf_counter() - cycle_start
+        self._cycle_latency.append(cycle_elapsed)
+        if len(self._cycle_latency) > 100:
+            self._cycle_latency.pop(0)
 
         return current_roll, rolls
 
