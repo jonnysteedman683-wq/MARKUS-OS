@@ -287,11 +287,9 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"error": "Not Found"}')
 
     def do_POST(self) -> None:
-        # [THORS] Security gate: detect and retaliate against attackers
+        # [THORS] Security gate: read body once, detect and retaliate against attackers
         client_ip = self.client_address[0]
-        content_length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
-        self.rfile = _RewoundStream(body)  # Rewind so handler can re-read
+        body = _read_body(self)
         if thors_engine.is_blocked(client_ip):
             verdict = thors_engine.analyze_request("POST", self.path, dict(self.headers), body, client_ip)
             thors_engine.retaliate(verdict, self)
@@ -303,8 +301,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
         # [END THORS]
 
         if self.path == "/api/intent":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            # body already read by Thors security gate above
             try:
                 data = json.loads(body) if body else {}
                 prompt = data.get("prompt", "")
