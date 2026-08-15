@@ -219,8 +219,6 @@ class EpochScheduler:
 
             elif run_fn_name == "run_redteam_epoch":
                 from markus_redteam import RedTeamAgent
-                from markus_db import PersistentCortexDB
-                import asyncio
                 red_agent = RedTeamAgent(cortex=self.cortex)
                 # Ultra-light epoch mode: 3 files, 2 mutations, no AST validation
                 # Scan for syntax errors only (fast) — full validation runs in track 6
