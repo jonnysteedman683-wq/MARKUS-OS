@@ -56,6 +56,8 @@ complexity_governor = MarkusComplexityGovernor()
 speculative_cache = MarkusSpeculativeCache()
 prompt_matrix = MarkusPromptSynthesisMatrix(db=kernel.memory.db)
 capability_synthesizer = MarkusCapabilitySynthesizer(registry=CapabilityRegistry(), sandbox=sandbox)
+thors_engine = ThorsEngine(cortex_db=kernel.memory.db)
+create_thors_tables(kernel.memory.db)
 
 active_dags: Dict[str, TaskDAG] = {
     "default_dag": TaskDAG("default_dag")
