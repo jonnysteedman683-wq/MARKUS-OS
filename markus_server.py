@@ -77,7 +77,16 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
         self._set_headers(200)
 
     def do_GET(self) -> None:
-        if self.path == "/" or self.path == "/ui" or self.path == "/chat" or self.path == "/markus-chat.html":
+        if self.path == "/" or self.path == "/ui" or self.path == "/nexus" or self.path == "/markus_nexus.html":
+            html_path = Path(__file__).parent / "markus_nexus.html"
+            if html_path.exists():
+                content = html_path.read_bytes()
+                self._set_headers(200, "text/html; charset=utf-8")
+                self.wfile.write(content)
+            else:
+                self._set_headers(404)
+                self.wfile.write(b"<h1>404 - markus_nexus.html not found</h1>")
+        elif self.path == "/chat" or self.path == "/markus-chat.html":
             html_path = Path(__file__).parent / "markus_chat.html"
             if html_path.exists():
                 content = html_path.read_bytes()

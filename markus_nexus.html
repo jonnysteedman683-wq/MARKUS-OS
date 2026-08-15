@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#030712" />
+  <title>MARKUS OS • Autonomous Command Deck & Holographic Nexus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Markdown & Syntax Highlighting -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #030712;
+      --bg-panel: rgba(8, 16, 32, 0.65);
+      --bg-panel-solid: #091224;
+      --bg-card: rgba(13, 24, 48, 0.55);
+      --emerald: #00ff88;
+      --emerald-glow: rgba(0, 255, 136, 0.45);
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.45);
+      --amber: #ffaa00;
+      --magenta: #ff0077;
+      --violet: #a855f7;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border-dim: rgba(0, 240, 255, 0.18);
+      --border-bright: rgba(0, 255, 136, 0.45);
+      --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+      --font-title: 'Cinzel', serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: var(--font-ui);
+      color: var(--text-main);
+      user-select: none;
+    }
+
+    /* Ambient Cosmic Canvas */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Main Grid Frame Layout */
+    .nexus-layout {
+      position: relative;
+      z-index: 10;
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 64px 1fr 36px;
+      grid-template-columns: 340px 1fr 380px;
+      gap: 12px;
+      padding: 12px 16px;
+      pointer-events: none;
+    }
+
+    .nexus-layout > * {
+      pointer-events: auto;
+    }
+
+    /* Glassmorphism Surface Base */
+    .glass-panel {
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-dim);
+      border-radius: 14px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 0 1px 1px rgba(255, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .glass-panel::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan-glow), var(--emerald-glow), transparent);
+      opacity: 0.6;
+    }
+
+    /* ─── Top Universal Nav & Status Header ─── */
+    .nexus-header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-radius: 12px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, var(--emerald), var(--cyan));
+      box-shadow: 0 0 20px var(--emerald-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--bg);
+      text-shadow: 0 0 8px rgba(0,0,0,0.5);
+    }
+
+    .brand-text h1 {
+      font-family: var(--font-title);
+      font-size: 1.25rem;
+      letter-spacing: 0.15em;
+      background: linear-gradient(90deg, #fff 0%, var(--emerald) 50%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .brand-text .tagline {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* Universal View Tabs */
+    .view-switcher {
+      display: flex;
+      background: rgba(3, 7, 18, 0.6);
+      border: 1px solid var(--border-dim);
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
+    }
+
+    .view-tab {
+      padding: 6px 14px;
+      border-radius: 7px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .view-tab:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .view-tab.active {
+      background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 240, 255, 0.15));
+      border: 1px solid var(--border-bright);
+      color: var(--emerald);
+      box-shadow: 0 0 16px var(--emerald-glow);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dice-trigger-btn {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.12), rgba(0, 255, 136, 0.12));
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+    }
+
+    .dice-trigger-btn:hover {
+      background: linear-gradient(135deg, var(--cyan), var(--emerald));
+      color: #000;
+      box-shadow: 0 0 24px var(--cyan-glow);
+      transform: translateY(-1px);
+    }
+
+    /* ─── Left Sidebar: Cortex Hierarchy & Diagnostics ─── */
+    .sidebar-left {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .panel-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.16em;
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      text-transform: uppercase;
+      padding: 12px 16px 8px 16px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cortex-hierarchy {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .cortex-tier-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 9px;
+      padding: 10px 12px;
+      transition: all 0.2s;
+    }
+
+    .cortex-tier-card:hover {
+      border-color: var(--border-bright);
+      background: rgba(13, 24, 48, 0.8);
+      transform: translateX(2px);
+    }
+
+    .tier-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .tier-name {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--emerald);
+    }
+
+    .tier-metric {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--cyan);
+    }
+
+    .tier-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    .process-table-mini {
+      height: 170px;
+      padding: 10px 14px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .proc-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 6px;
+      background: rgba(3, 7, 18, 0.4);
+      border-radius: 6px;
+      border-left: 2px solid var(--emerald);
+    }
+
+    /* ─── Center Hero: Interactive Dual-State Holographic Canvas & DAG ─── */
+    .hero-center {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hero-subviews {
+      flex: 1;
+      position: relative;
+    }
+
+    .subview-pane {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+    }
+
+    .subview-pane.active {
+      display: flex;
+    }
+
+    /* Holographic Interactive Orb Viewport */
+    .orb-viewport {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #orb-interactive-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .orb-overlay-hud {
+      position: relative;
+      z-index: 20;
+      text-align: center;
+      pointer-events: none;
+      margin-top: 180px;
+    }
+
+    .orb-state-label {
+      font-family: var(--font-title);
+      font-size: 1.4rem;
+      letter-spacing: 0.25em;
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan-glow);
+    }
+
+    .orb-sub-label {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--emerald);
+      letter-spacing: 0.15em;
+      margin-top: 4px;
+    }
+
+    /* Dynamic DAG & Model Matrix Panes */
+    .dag-graph-view, .matrix-view-pane {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .dag-node-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* ─── Right Panel: Holographic Chat & Real-Time Intent Console ─── */
+    .sidebar-right {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-messages-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .bubble {
+      max-width: 88%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      word-wrap: break-word;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.08));
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      border-bottom-right-radius: 2px;
+    }
+
+    .bubble.agent {
+      align-self: flex-start;
+      background: linear-gradient(135deg, rgba(0, 255, 136, 0.14), rgba(0, 255, 136, 0.04));
+      border: 1px solid rgba(0, 255, 136, 0.25);
+      border-bottom-left-radius: 2px;
+    }
+
+    .bubble.system {
+      align-self: center;
+      background: rgba(255, 170, 0, 0.1);
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      color: var(--amber);
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      text-align: center;
+    }
+
+    .bubble .meta {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .bubble pre {
+      background: #020617;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 8px;
+      margin: 8px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .bubble code {
+      font-family: var(--font-mono);
+      color: var(--cyan);
+    }
+
+    .routing-tag {
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid var(--border-dim);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    .chat-input-container {
+      padding: 12px;
+      border-top: 1px solid var(--border-dim);
+      background: rgba(3, 7, 18, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chat-textarea {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      border-radius: 9px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 10px 12px;
+      resize: none;
+      min-height: 52px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .chat-textarea:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
+    }
+
+    .chat-controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .send-action-btn {
+      background: linear-gradient(135deg, var(--emerald), var(--cyan));
+      color: #030712;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 7px 18px;
+      border-radius: 7px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 14px var(--emerald-glow);
+    }
+
+    .send-action-btn:hover {
+      box-shadow: 0 0 22px var(--cyan-glow);
+      transform: translateY(-1px);
+    }
+
+    /* ─── Bottom Footer Telemetry Strip ─── */
+    .nexus-footer {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-radius: 9px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .telemetry-chips {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(3, 7, 18, 0.5);
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 6px var(--emerald);
+    }
+
+    .chip-dot.pulse {
+      animation: pulseGlow 1.5s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.2); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Background Starfield Canvas -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Nexus Master Viewport Grid -->
+  <div class="nexus-layout">
+    
+    <!-- ─── HEADER BAR ─── -->
+    <header class="glass-panel nexus-header">
+      <div class="brand-section">
+        <div class="brand-logo">M</div>
+        <div class="brand-text">
+          <h1>MARKUS OS</h1>
+          <div class="tagline">AUTONOMOUS AGENT COMMAND DECK • TIERED CORTEX</div>
+        </div>
+      </div>
+
+      <!-- Center View Switcher -->
+      <nav class="view-switcher">
+        <button class="view-tab active" data-view="orb-view">
+          <span>🔮</span> 3D Neural Orb
+        </button>
+        <button class="view-tab" data-view="dag-view">
+          <span>⚡</span> Task DAG
+        </button>
+        <button class="view-tab" data-view="matrix-view">
+          <span>📊</span> Model Matrix
+        </button>
+        <button class="view-tab" data-view="governor-view">
+          <span>🛡️</span> Code Governor
+        </button>
+      </nav>
+
+      <!-- Right Action Triggers -->
+      <div class="header-actions">
+        <button id="quickRollBtn" class="dice-trigger-btn">
+          <span id="diceSpinIcon">🎲</span> <span id="diceBtnLabel">Roll Dice Engine</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ─── LEFT SIDEBAR: Cortex & Process Substrates ─── -->
+    <aside class="sidebar-left">
+      <!-- Tiered Memory Cortex Panel -->
+      <div class="glass-panel" style="flex: 1.3;">
+        <div class="panel-title">
+          <span>Memory Cortex Substrate</span>
+          <span id="cortexActivePill" style="color:var(--emerald);">4 TIERS</span>
+        </div>
+        <div class="cortex-hierarchy">
+          <div class="cortex-tier-card">
+            <div class="tier-header">
+              <span class="tier-name">L1 Registers</span>
+              <span class="tier-metric" id="l1Count">0 active</span>
+            </div>
+            <div class="tier-desc">Volatile zero-latency execution registers</div>
+          </div>
+          <div class="cortex-tier-card">
+            <div class="tier-header">
+              <span class="tier-name">L1.5 Hot Ring Buffer</span>
+              <span class="tier-metric" id="ringStatus">256 slots (7.8µs)</span>
+            </div>
+            <div class="tier-desc">Shared memory zero-copy lockless IPC ring</div>
+          </div>
+          <div class="cortex-tier-card">
+            <div class="tier-header">
+              <span class="tier-name">L2 Working Context</span>
+              <span class="tier-metric" id="l2Count">0 entries</span>
+            </div>
+            <div class="tier-desc">Sliding-window working thought frame</div>
+          </div>
+          <div class="cortex-tier-card">
+            <div class="tier-header">
+              <span class="tier-name">L3 Persistent DB</span>
+              <span class="tier-metric">SQLite FTS5</span>
+            </div>
+            <div class="tier-desc">Durable vector memory & audit vault</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Microkernel Processes -->
+      <div class="glass-panel" style="flex: 1;">
+        <div class="panel-title">
+          <span>Microkernel Tasks</span>
+          <span id="procCountBadge" style="color:var(--cyan);">ONLINE</span>
+        </div>
+        <div class="process-table-mini" id="procTableBody">
+          <div class="proc-row">
+            <span style="color:var(--emerald);">proc_sentinel</span>
+            <span>SentinelWatchdog</span>
+            <span style="color:var(--emerald);">RUNNING</span>
+          </div>
+          <div class="proc-row">
+            <span style="color:var(--emerald);">proc_planner</span>
+            <span>DeliberativeMoA</span>
+            <span style="color:var(--emerald);">RUNNING</span>
+          </div>
+          <div class="proc-row">
+            <span style="color:var(--cyan);">proc_bridge</span>
+            <span>HermesIPCBridge</span>
+            <span style="color:var(--cyan);">POLL</span>
+          </div>
+          <div class="proc-row">
+            <span style="color:var(--violet);">proc_mesh</span>
+            <span>SwarmUDPMesh</span>
+            <span style="color:var(--violet);">PORT:8130</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ─── CENTER HERO STAGE: Dynamic Multi-View Deck ─── -->
+    <main class="glass-panel hero-center">
+      <div class="hero-subviews">
+        
+        <!-- View 1: 3D Holographic Interactive Neural Orb -->
+        <div class="subview-pane active" id="pane-orb-view">
+          <div class="orb-viewport">
+            <canvas id="orb-interactive-canvas"></canvas>
+            <div class="orb-overlay-hud">
+              <div class="orb-state-label" id="heroOrbLabel">NEURAL ORB MATRIX</div>
+              <div class="orb-sub-label" id="heroOrbSub">RESONANCE FREQUENCY: 40.0Hz (GAMMA)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 2: Multi-Agent Task DAG Subsystem -->
+        <div class="subview-pane" id="pane-dag-view">
+          <div class="dag-graph-view">
+            <div class="panel-title" style="margin-bottom:12px;">Multi-Agent Task Dependency Graph (Topological Kahn Engine)</div>
+            <div id="dagCardContainer">
+              <div class="dag-node-card">
+                <div>
+                  <strong style="color:var(--cyan);">task_root</strong>
+                  <div style="color:var(--text-muted); font-size:0.75rem;">Subsystem Invariants Verification</div>
+                </div>
+                <span class="chip" style="color:var(--emerald);"><span class="chip-dot"></span>VERIFIED</span>
+              </div>
+              <div class="dag-node-card">
+                <div>
+                  <strong style="color:var(--cyan);">task_ast_eval</strong>
+                  <div style="color:var(--text-muted); font-size:0.75rem;">ReVeal AST Sandboxed Test Matrix</div>
+                </div>
+                <span class="chip" style="color:var(--emerald);"><span class="chip-dot"></span>PASSED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 3: Model Routing & Adaptive Weight Matrix -->
+        <div class="subview-pane" id="pane-matrix-view">
+          <div class="matrix-view-pane">
+            <div class="panel-title" style="margin-bottom:12px;">Live Multi-Model Adaptive Weight Matrix</div>
+            <div id="matrixCardContainer">
+              <!-- Dynamically populated from /api/router/matrix -->
+            </div>
+          </div>
+        </div>
+
+        <!-- View 4: AST Complexity Governor -->
+        <div class="subview-pane" id="pane-governor-view">
+          <div class="matrix-view-pane">
+            <div class="panel-title" style="margin-bottom:12px;">Workspace Maintainability & AST Refactoring Governor</div>
+            <div id="governorContainer">
+              <!-- Dynamically populated from /api/governor/audit -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ─── RIGHT SIDEBAR: Holographic Chat & Intent Dispatcher ─── -->
+    <aside class="glass-panel sidebar-right">
+      <div class="panel-title">
+        <span>Intent Execution Stream</span>
+        <span id="chatStateBadge" style="color:var(--emerald);">READY</span>
+      </div>
+
+      <div class="chat-messages-scroll" id="chatMessageScroll">
+        <div class="bubble system">
+          MARKUS OS Holographic Command Deck v2.0 Online.
+          <div class="meta">Connected to Server Port 8128 • Tiered Cortex Synced</div>
+        </div>
+      </div>
+
+      <div class="chat-input-container">
+        <textarea id="promptInput" class="chat-textarea" placeholder="Type intent for MARKUS OS (Ctrl+Enter to dispatch)..."></textarea>
+        <div class="chat-controls-row">
+          <span style="font-size:0.7rem; color:var(--text-dim); font-family:var(--font-mono);">Ctrl + Enter to Send</span>
+          <button id="dispatchIntentBtn" class="send-action-btn">Dispatch Intent</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ─── FOOTER TELEMETRY STRIP ─── -->
+    <footer class="glass-panel nexus-footer">
+      <div class="telemetry-chips">
+        <div class="chip"><span class="chip-dot pulse"></span><span id="ftKernelState">KERNEL: ACTIVE</span></div>
+        <div class="chip"><span class="chip-dot"></span><span id="ftLatency">PING: 0ms</span></div>
+        <div class="chip"><span class="chip-dot"></span><span id="ftDiceState">DICE: IDLE</span></div>
+        <div class="chip"><span class="chip-dot"></span><span id="ftDagState">DAG: STANDBY</span></div>
+      </div>
+      <div style="font-size:0.7rem; color:var(--text-dim);">
+        PHOENIX EVOLUTION ENGINE • REVEAL AST SANDBOX • DEVSWARM SELF-HEALING
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    /* ==========================================================================
+       MARKUS OS COMMAND DECK — Client Engine & Telemetry Synchronizer
+       ========================================================================== */
+
+    // ─── 3D Ambient Canvas Background ──────────────────────────────────────
+    const bgCanvas = document.getElementById("bg-canvas");
+    const bgCtx = bgCanvas.getContext("2d");
+    let bgW = (bgCanvas.width = window.innerWidth);
+    let bgH = (bgCanvas.height = window.innerHeight);
+
+    window.addEventListener("resize", () => {
+      bgW = bgCanvas.width = window.innerWidth;
+      bgH = bgCanvas.height = window.innerHeight;
+      orbW = orbCanvas.width = orbCanvas.parentElement.clientWidth;
+      orbH = orbCanvas.height = orbCanvas.parentElement.clientHeight;
+    });
+
+    const STARS_COUNT = 140;
+    const stars = Array.from({ length: STARS_COUNT }, () => ({
+      x: Math.random() * bgW,
+      y: Math.random() * bgH,
+      size: Math.random() * 1.5 + 0.5,
+      speed: Math.random() * 0.3 + 0.1,
+      alpha: Math.random() * 0.7 + 0.2
+    }));
+
+    function renderBackground() {
+      bgCtx.fillStyle = "#030712";
+      bgCtx.fillRect(0, 0, bgW, bgH);
+
+      // Starfield drift
+      stars.forEach(s => {
+        s.y -= s.speed;
+        if (s.y < 0) s.y = bgH;
+        bgCtx.fillStyle = `rgba(0, 240, 255, ${s.alpha})`;
+        bgCtx.beginPath();
+        bgCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        bgCtx.fill();
+      });
+
+      requestAnimationFrame(renderBackground);
+    }
+    renderBackground();
+
+    // ─── Center Interactive Holographic Neural Orb ──────────────────────────
+    const orbCanvas = document.getElementById("orb-interactive-canvas");
+    const orbCtx = orbCanvas.getContext("2d");
+    let orbW = (orbCanvas.width = orbCanvas.parentElement.clientWidth || 600);
+    let orbH = (orbCanvas.height = orbCanvas.parentElement.clientHeight || 450);
+
+    let orbTime = 0;
+    let orbEnergy = 1.0;
+
+    function renderHolographicOrb() {
+      orbTime += 0.02;
+      orbCtx.clearRect(0, 0, orbW, orbH);
+
+      const cx = orbW / 2;
+      const cy = orbH / 2 - 20;
+      const radius = 95 + Math.sin(orbTime * 2) * 4;
+
+      // 1. Atmosphere Gradient Ring
+      const glowGrad = orbCtx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius * 2.2);
+      glowGrad.addColorStop(0, "rgba(0, 255, 136, 0.35)");
+      glowGrad.addColorStop(0.5, "rgba(0, 240, 255, 0.15)");
+      glowGrad.addColorStop(1, "rgba(3, 7, 18, 0)");
+      orbCtx.fillStyle = glowGrad;
+      orbCtx.beginPath();
+      orbCtx.arc(cx, cy, radius * 2.2, 0, Math.PI * 2);
+      orbCtx.fill();
+
+      // 2. Counter-Rotating Neural Rings
+      orbCtx.save();
+      orbCtx.translate(cx, cy);
+      
+      // Ring 1
+      orbCtx.rotate(orbTime * 0.8);
+      orbCtx.strokeStyle = "rgba(0, 255, 136, 0.4)";
+      orbCtx.lineWidth = 2;
+      orbCtx.beginPath();
+      orbCtx.ellipse(0, 0, radius * 1.35, radius * 0.45, 0, 0, Math.PI * 2);
+      orbCtx.stroke();
+
+      // Ring 2
+      orbCtx.rotate(-orbTime * 1.4);
+      orbCtx.strokeStyle = "rgba(0, 240, 255, 0.35)";
+      orbCtx.lineWidth = 1.5;
+      orbCtx.beginPath();
+      orbCtx.ellipse(0, 0, radius * 1.2, radius * 0.6, Math.PI / 4, 0, Math.PI * 2);
+      orbCtx.stroke();
+      orbCtx.restore();
+
+      // 3. Central Core Glass Sphere
+      const sphereGrad = orbCtx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, radius * 0.1, cx, cy, radius);
+      sphereGrad.addColorStop(0, "rgba(224, 242, 254, 0.9)");
+      sphereGrad.addColorStop(0.3, "rgba(0, 255, 136, 0.7)");
+      sphereGrad.addColorStop(0.7, "rgba(0, 240, 255, 0.4)");
+      sphereGrad.addColorStop(1, "rgba(3, 7, 18, 0.8)");
+      
+      orbCtx.fillStyle = sphereGrad;
+      orbCtx.beginPath();
+      orbCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+      orbCtx.fill();
+
+      requestAnimationFrame(renderHolographicOrb);
+    }
+    setTimeout(renderHolographicOrb, 100);
+
+    // ─── View Switcher Tabs ────────────────────────────────────────────────
+    const viewTabs = document.querySelectorAll(".view-tab");
+    viewTabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        viewTabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+
+        const targetId = `pane-${tab.dataset.view}`;
+        document.querySelectorAll(".subview-pane").forEach(p => p.classList.remove("active"));
+        const activePane = document.getElementById(targetId);
+        if (activePane) activePane.classList.add("active");
+
+        if (tab.dataset.view === "matrix-view") fetchMatrixTelemetry();
+        if (tab.dataset.view === "governor-view") fetchGovernorTelemetry();
+      });
+    });
+
+    // ─── Audio Synthesis (3D Spatial Panner) ──────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playChime(freq1 = 440, freq2 = 880, dur = 0.25) {
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc1.frequency.setValueAtTime(freq1, audioCtx.currentTime);
+      osc2.frequency.setValueAtTime(freq2, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc1.start(); osc2.start();
+      osc1.stop(audioCtx.currentTime + dur);
+      osc2.stop(audioCtx.currentTime + dur);
+    }
+
+    // ─── Chat & Intent Execution Stream ───────────────────────────────────
+    const chatScroll = document.getElementById("chatMessageScroll");
+    const promptInput = document.getElementById("promptInput");
+    const dispatchBtn = document.getElementById("dispatchIntentBtn");
+
+    function appendChatMessage(text, type = "agent", meta = "MARKUS OS") {
+      const div = document.createElement("div");
+      div.className = `bubble ${type}`;
+      
+      // Render markdown for agent/system
+      if (type === "agent" && window.marked) {
+        div.innerHTML = marked.parse(text);
+      } else {
+        div.textContent = text;
+      }
+
+      const metaEl = document.createElement("div");
+      metaEl.className = "meta";
+      metaEl.innerHTML = `<span>${meta}</span> <span>${new Date().toLocaleTimeString()}</span>`;
+      div.appendChild(metaEl);
+
+      chatScroll.appendChild(div);
+      chatScroll.scrollTop = chatScroll.scrollHeight;
+    }
+
+    async function dispatchIntent() {
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+
+      appendChatMessage(prompt, "user", "YOU");
+      promptInput.value = "";
+      dispatchBtn.disabled = true;
+      playChime(523.25, 659.25, 0.2);
+
+      try {
+        const res = await fetch("http://localhost:8128/api/intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+        
+        if (data.kernel_response) {
+          appendChatMessage(data.kernel_response, "agent", `MARKUS OS [${data.routing_decision?.model || 'ROUTED'}]`);
+        }
+        playChime(659.25, 880, 0.3);
+      } catch (err) {
+        appendChatMessage(`[Dispatch Fault] ${err.message}`, "system", "ERROR");
+        playChime(185, 261.63, 0.3);
+      } finally {
+        dispatchBtn.disabled = false;
+        promptInput.focus();
+      }
+    }
+
+    dispatchBtn.addEventListener("click", dispatchIntent);
+    promptInput.addEventListener("keydown", e => {
+      if (e.ctrlKey && e.key === "Enter") dispatchIntent();
+    });
+
+    // ─── Dice Roll Engine Handler ─────────────────────────────────────────
+    const quickRollBtn = document.getElementById("quickRollBtn");
+    const diceSpinIcon = document.getElementById("diceSpinIcon");
+    const diceBtnLabel = document.getElementById("diceBtnLabel");
+
+    quickRollBtn.addEventListener("click", async () => {
+      quickRollBtn.disabled = true;
+      diceBtnLabel.textContent = "Rolling Engine...";
+      diceSpinIcon.style.display = "inline-block";
+      playChime(587.33, 880, 0.2);
+
+      try {
+        const res = await fetch("http://localhost:8128/api/dice/roll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        const data = await res.json();
+        document.getElementById("ftDiceState").textContent = `DICE: ${data.action}`;
+        appendChatMessage(`🎲 **Dice Engine Triggered:** Roll \`${data.final_roll}\` (Chain: \`[${data.roll_sequence.join(', ')}]\`)\n\n**Action Target:** \`${data.action}\`\n\n${data.prompt}`, "agent", "DICE AUTONOMY");
+        playChime(523.25, 1046.5, 0.35);
+      } catch (err) {
+        appendChatMessage(`[Dice Roll Fault] ${err.message}`, "system", "ERROR");
+      } finally {
+        quickRollBtn.disabled = false;
+        diceBtnLabel.textContent = "Roll Dice Engine";
+      }
+    });
+
+    // ─── Real-Time SSE Stream Telemetry ───────────────────────────────────
+    const eventSource = new EventSource("http://localhost:8128/api/stream");
+    eventSource.onmessage = e => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === "dice_roll") {
+          document.getElementById("ftDiceState").textContent = `DICE: ${data.action}`;
+          playChime(587.33, 880, 0.2);
+        } else if (data.event === "dag_completed") {
+          document.getElementById("ftDagState").textContent = `DAG: FINISHED (${data.elapsed_ms}ms)`;
+          playChime(392, 783.99, 0.2);
+        }
+      } catch(err) {}
+    };
+
+    // ─── Telemetry Polling (Every 4 seconds) ──────────────────────────────
+    async function updateSystemTelemetry() {
+      const t0 = performance.now();
+      try {
+        const res = await fetch("http://localhost:8128/api/status");
+        const data = await res.json();
+        const ping = Math.round(performance.now() - t0);
+
+        document.getElementById("ftLatency").textContent = `PING: ${ping}ms`;
+        document.getElementById("ftKernelState").textContent = `KERNEL: ${data.kernel_state || 'ACTIVE'}`;
+        
+        if (data.memory_cortex) {
+          document.getElementById("l1Count").textContent = `${Object.keys(data.memory_cortex.registers || {}).length} active`;
+          document.getElementById("l2Count").textContent = `${data.memory_cortex.working_memory_count || 0} entries`;
+          if (data.memory_cortex.registers?.LAST_DICE_ACTION) {
+            document.getElementById("ftDiceState").textContent = `DICE: ${data.memory_cortex.registers.LAST_DICE_ACTION}`;
+          }
+        }
+      } catch(e) {
+        document.getElementById("ftLatency").textContent = "PING: OFFLINE";
+      }
+    }
+    setInterval(updateSystemTelemetry, 4000);
+    updateSystemTelemetry();
+
+    // ─── Dynamic Model Matrix Telemetry ───────────────────────────────────
+    async function fetchMatrixTelemetry() {
+      const container = document.getElementById("matrixCardContainer");
+      try {
+        const res = await fetch("http://localhost:8128/api/router/matrix");
+        const data = await res.json();
+        container.innerHTML = "";
+
+        Object.entries(data.matrix || {}).forEach(([tier, models]) => {
+          const card = document.createElement("div");
+          card.className = "dag-node-card";
+          card.style.flexDirection = "column";
+          card.style.alignItems = "flex-start";
+          card.style.gap = "6px";
+          
+          let rows = Object.entries(models).map(([m, stats]) => 
+            `<div style="display:flex; justify-content:space-between; width:100%; font-family:var(--font-mono); font-size:0.75rem;">
+              <span style="color:var(--text-main);">${m}</span>
+              <span style="color:var(--emerald);">Score: ${(stats.composite_score || stats.weight || 0).toFixed(2)} | Latency: ${Math.round(stats.ema_latency_ms || 0)}ms</span>
+            </div>`
+          ).join("");
+
+          card.innerHTML = `<strong style="color:var(--cyan); font-family:var(--font-mono);">${tier}</strong>${rows}`;
+          container.appendChild(card);
+        });
+      } catch (err) {
+        container.innerHTML = `<div style="color:var(--amber);">Failed to load matrix telemetry: ${err.message}</div>`;
+      }
+    }
+
+    // ─── Dynamic Governor Telemetry ───────────────────────────────────────
+    async function fetchGovernorTelemetry() {
+      const container = document.getElementById("governorContainer");
+      try {
+        const res = await fetch("http://localhost:8128/api/governor/audit");
+        const data = await res.json();
+        container.innerHTML = "";
+
+        const summaryCard = document.createElement("div");
+        summaryCard.className = "dag-node-card";
+        summaryCard.innerHTML = `<div>
+          <strong style="color:var(--emerald);">Workspace Health: ${data.summary?.system_health || 'OPTIMAL'}</strong>
+          <div style="color:var(--text-muted); font-size:0.75rem;">Total Modules: ${data.summary?.total_modules || 0} | Avg Maintainability: ${data.summary?.average_maintainability_index || 0}/100</div>
+        </div>`;
+        container.appendChild(summaryCard);
+
+        (data.audits || []).slice(0, 8).forEach(a => {
+          const modCard = document.createElement("div");
+          modCard.className = "dag-node-card";
+          modCard.innerHTML = `<div>
+            <strong style="color:var(--cyan);">${a.module_name}</strong>
+            <div style="font-size:0.75rem; color:var(--text-muted);">LOC: ${a.total_loc} | Maintainability: ${a.maintainability_index}/100 | Cyclo: ${a.average_cyclomatic}</div>
+          </div>
+          <span class="chip" style="color:${a.status === 'CLEAN' ? 'var(--emerald)' : 'var(--amber)'};">${a.status}</span>`;
+          container.appendChild(modCard);
+        });
+      } catch (err) {
+        container.innerHTML = `<div style="color:var(--amber);">Failed to load governor audit: ${err.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
