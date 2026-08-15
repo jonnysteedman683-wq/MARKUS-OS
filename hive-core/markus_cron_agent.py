@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional
 
 # ── Path Bootstrap ────────────────────────────────────────────────────────────
 # Allow running directly from hive-core/ without installation
-_HERE = Path(__file__).resolve().parent
+_HERE = Path(os.path.dirname(os.path.abspath(__file__) if "__file__" in dir() else os.getcwd()))
 _ROOT = _HERE.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -41,7 +41,7 @@ logger = logging.getLogger("Markus.CronAgent")
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
-DEFAULT_CRON_REGISTRY = Path(__file__).parent / "hive-core" / "markus_cron_registry.json"
+DEFAULT_CRON_REGISTRY = _HERE / "markus_cron_registry.json"
 DEFAULT_KANBAN_DB = Path(os.environ.get(
     "MARKUS_KANBAN_DB",
     "C:/Users/jonny/AppData/Local/hermes/kanban.db"
@@ -259,7 +259,7 @@ class HybridCronAgent:
             result = subprocess.run(
                 [sys.executable, "markus_latency_multi_upgrade.py"],
                 capture_output=True, text=True, timeout=60,
-                cwd=str(Path(__file__).resolve().parent.parent)
+                cwd=str(_HERE.parent)
             )
             
             self.db.append_thought(
