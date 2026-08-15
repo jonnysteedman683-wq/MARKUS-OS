@@ -33,7 +33,7 @@ from markus_kernel import MarkusKernel
 
 logger = logging.getLogger("Markus.LatencyMultiUpgrade")
 
-REPO_ROOT = Path(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = Path(os.path.dirname(os.path.abspath(__file__) if "__file__" in dir() else os.getcwd()))
 
 
 @dataclass
