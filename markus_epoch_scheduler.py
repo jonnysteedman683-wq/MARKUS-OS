@@ -328,14 +328,15 @@ class EpochScheduler:
                 "output": f"Unknown track: {run_fn_name}"
             }
 
+        t0_reference = [0.0]  # Mutable container for timing reference
+
         def _do_exec():
-            nonlocal t0
-            t0 = time.perf_counter()
+            t0_reference[0] = time.perf_counter()
             return _execute()
 
         try:
             result = ep.protected_call(_do_exec)
-            elapsed_ms = (time.perf_counter() - (t0 if 't0' in dir() else time.perf_counter())) * 1000
+            elapsed_ms = (time.perf_counter() - t0_reference[0]) * 1000
 
             return EpochResult(
                 epoch_id=epoch_id,
