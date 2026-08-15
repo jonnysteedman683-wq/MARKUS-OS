@@ -1,0 +1,26 @@
+[
+  {
+    "id": "hourly-health-check",
+    "category": "FAST_TELEMETRY",
+    "schedule": "h",
+    "event_trigger": null,
+    "payload_keys": ["status", "metrics"],
+    "max_runtime": 15
+  },
+  {
+    "id": "daily-model-benchmark",
+    "category": "MEGACONTEXT_ARCH",
+    "schedule": "24h",
+    "event_trigger": null,
+    "payload_keys": [],
+    "max_runtime": 300
+  },
+  {
+    "id": "weekly-swarm-mesh-discover",
+    "category": "MEGACONTEXT_ARCH",
+    "schedule": "w",
+    "event_trigger": "tcp://mesh-discovery:8129",
+    "payload_keys": ["node_id", "peers"],
+    "max_runtime": 30
+  }
+]

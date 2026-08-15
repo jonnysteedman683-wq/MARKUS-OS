@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#030712">
+  <title>MARKUS OS — Autonomous Chat Interface</title>
+  <style>
+    :root {
+      --bg: #030712;
+      --panel: rgba(15, 20, 35, 0.45);
+      --cyan: #00f0ff;
+      --emerald: #00ff88;
+      --amber: #ff9e3a;
+      --text: #e0e0e0;
+      --muted: #8a8a9a;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #081025 0%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .chat-container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+    }
+    .chat-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .chat-header h1 {
+      font-size: 1.8em;
+      background: linear-gradient(90deg, var(--emerald), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .chat-header .subtitle {
+      color: var(--muted);
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: var(--panel);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .message-bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      line-height: 1.5;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    .user-msg {
+      align-self: flex-end;
+      background: rgba(0, 240, 255, 0.15);
+      border-bottom-right-color: var(--cyan);
+    }
+    .agent-msg {
+      align-self: flex-start;
+      background: rgba(0, 255, 136, 0.08);
+      border-bottom-left-color: var(--emerald);
+    }
+    .system-msg {
+      align-self: center;
+      background: rgba(255, 158, 58, 0.12);
+      border: 1px solid rgba(255, 158, 58, 0.3);
+      font-size: 0.85em;
+      color: var(--amber);
+    }
+    .msg-meta {
+      font-size: 0.75em;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+    .routing-badge {
+      margin-top: 4px;
+      padding: 2px 8px;
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--cyan);
+      font-size: 0.7em;
+      border-radius: 8px;
+    }
+    .input-area {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .input-area textarea {
+      flex: 1;
+      background: var(--panel);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: var(--text);
+      padding: 12px;
+      border-radius: 10px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 50px;
+      max-height: 150px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-area textarea:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+    }
+    .send-btn {
+      background: linear-gradient(135deg, var(--emerald), var(--cyan));
+      color: #000;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    .send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,255,136,0.3); }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.8em;
+    }
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hud-chip {
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: var(--cyan);
+      font-family: monospace;
+      font-size: 0.78em;
+    }
+    .hud-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #historyPanel {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      width: 240px;
+      max-height: 60vh;
+      overflow-y: auto;
+      background: var(--panel);
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      padding: 8px;
+      z-index: 50;
+      display: none;
+    }
+    #historyPanel h3 {
+      color: var(--cyan);
+      font-size: 0.85em;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+    }
+    .history-item {
+      font-size: 0.75em;
+      color: var(--muted);
+      padding: 3px 0;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .history-item:hover {
+      color: var(--text);
+      background: rgba(0, 240, 255, 0.05);
+    }
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+    <!-- Top Action Bar -->
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 50; display: flex; gap: 8px;">
+      <button id="diceRollBtn" style="
+        background: rgba(0, 240, 255, 0.15);
+        color: var(--cyan);
+        border: 1px solid rgba(0, 240, 255, 0.4);
+        padding: 6px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 600;
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      "><span id="diceIcon">🎲</span> <span id="diceBtnText">Roll Dice</span></button>
+
+      <button id="historyToggle" style="
+        background: rgba(0, 255, 136, 0.1);
+        color: var(--emerald);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        padding: 6px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.8em;
+        backdrop-filter: blur(5px);
+      ">◂ History ▾</button>
+      <div id="historyPanel"></div>
+    </div>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <h1>MARKUS OS Agent</h1>
+      <div class="subtitle">
+        Autonomous Execution Interface
+        <span class="status-indicator" id="connectionStatus">
+          <span class="pulse-dot"></span>Connecting...
+        </span>
+      </div>
+    </div>
+
+    <div id="messages" class="messages-area">
+      <div class="message-bubble system-msg">
+        MARKUS OS online. Type your intent below.
+        <div class="msg-meta">System Boot • Connected to Cortex DB</div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <textarea id="inputBox" placeholder="Enter your intent for MARKUS OS (Ctrl+Enter to send)..." rows="2"></textarea>
+      <button id="sendBtn" class="send-btn">Send</button>
+    </div>
+
+    <div class="status-bar">
+      <div class="hud-bar">
+        <span id="modelStatus" class="hud-chip">Model: —</span>
+        <span id="cortexStatus" class="hud-chip">Cortex: —</span>
+        <span id="dagStatus" class="hud-chip">DAG: IDLE</span>
+        <span id="diceHud" class="hud-chip">Last Dice: —</span>
+      </div>
+      <span class="status-indicator" id="footerPing">
+        <span class="pulse-dot"></span>0ms telemetry
+      </span>
+    </div>
+  </div>
+
+  <script>
+    const inputBox = document.getElementById('inputBox');
+    const sendBtn = document.getElementById('sendBtn');
+    const messagesDiv = document.getElementById('messages');
+    const connStatus = document.getElementById('connectionStatus');
+    const modelStatus = document.getElementById('modelStatus');
+    const cortexStatus = document.getElementById('cortexStatus');
+    const dagStatus = document.getElementById('dagStatus');
+    const diceHud = document.getElementById('diceHud');
+    const footerPing = document.getElementById('footerPing');
+
+    // ─── Web Audio 3D Spatial Audio Resonator ──────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const listener = audioCtx.listener;
+    if (listener.positionX) {
+      listener.positionX.setValueAtTime(0, audioCtx.currentTime);
+      listener.positionY.setValueAtTime(0, audioCtx.currentTime);
+      listener.positionZ.setValueAtTime(0, audioCtx.currentTime);
+      listener.forwardX.setValueAtTime(0, audioCtx.currentTime);
+      listener.forwardY.setValueAtTime(0, audioCtx.currentTime);
+      listener.forwardZ.setValueAtTime(-1, audioCtx.currentTime);
+      listener.upX.setValueAtTime(0, audioCtx.currentTime);
+      listener.upY.setValueAtTime(1, audioCtx.currentTime);
+      listener.upZ.setValueAtTime(0, audioCtx.currentTime);
+    } else if (listener.setPosition) {
+      listener.setPosition(0, 0, 0);
+      listener.setOrientation(0, 0, -1, 0, 1, 0);
+    }
+
+    const AUDIO_PROFILES = {
+      DISPATCH: [{freq: 440, type: 'sine', gain: 0.08, duration: 0.18, pan: -0.4, pos: [-1.5, 0.5, -2]}, {freq: 659.25, type: 'triangle', gain: 0.04, duration: 0.22, pan: 0.4, pos: [1.5, 0.5, -2]}],
+      SUCCESS: [{freq: 523.25, type: 'sine', gain: 0.08, duration: 0.15, pan: -0.6, pos: [-2, 0, -1.5]}, {freq: 659.25, type: 'sine', gain: 0.06, duration: 0.20, pan: 0.0, pos: [0, 1, -1.5]}, {freq: 1046.50, type: 'triangle', gain: 0.04, duration: 0.35, pan: 0.6, pos: [2, 0, -1.5]}],
+      PULSE: [{freq: 220, type: 'sine', gain: 0.12, duration: 0.30, pan: 0.0, pos: [0, -0.5, -1]}, {freq: 329.63, type: 'sine', gain: 0.06, duration: 0.35, pan: 0.2, pos: [0.5, -0.2, -1]}],
+      ERROR: [{freq: 185.00, type: 'sawtooth', gain: 0.09, duration: 0.25, pan: -0.8, pos: [-3, -1, -1]}, {freq: 138.59, type: 'sawtooth', gain: 0.07, duration: 0.30, pan: 0.8, pos: [3, -1, -1]}],
+      DICE_ROLL: [{freq: 587.33, type: 'sine', gain: 0.07, duration: 0.12, pan: -0.5, pos: [-1.8, 1.2, -1.5]}, {freq: 880.00, type: 'triangle', gain: 0.05, duration: 0.18, pan: 0.5, pos: [1.8, 1.2, -1.5]}],
+      DAG_STEP: [{freq: 392.00, type: 'sine', gain: 0.08, duration: 0.14, pan: -0.3, pos: [-1, 0, -2]}, {freq: 783.99, type: 'sine', gain: 0.05, duration: 0.22, pan: 0.3, pos: [1, 0, -2]}]
+    };
+
+    function playChime(profile = AUDIO_PROFILES.DISPATCH, spatial = true) {
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        profile.forEach(p => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = p.type;
+          osc.frequency.setValueAtTime(p.freq, now);
+          gain.gain.setValueAtTime(p.gain, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + p.duration);
+
+          if (spatial && audioCtx.createPanner) {
+            try {
+              const panner = audioCtx.createPanner();
+              panner.panningModel = 'HRTF';
+              panner.distanceModel = 'inverse';
+              panner.refDistance = 1;
+              panner.maxDistance = 10000;
+              panner.rolloffFactor = 1;
+              panner.coneInnerAngle = 360;
+              panner.coneOuterAngle = 0;
+              panner.coneOuterGain = 0;
+
+              const pos = p.pos || [0, 0, -1];
+              if (panner.positionX) {
+                panner.positionX.setValueAtTime(pos[0], now);
+                panner.positionY.setValueAtTime(pos[1], now);
+                panner.positionZ.setValueAtTime(pos[2], now);
+              } else if (panner.setPosition) {
+                panner.setPosition(pos[0], pos[1], pos[2]);
+              }
+              osc.connect(gain);
+              gain.connect(panner);
+              panner.connect(audioCtx.destination);
+            } catch(pannerErr) {
+              osc.connect(gain);
+              gain.connect(audioCtx.destination);
+            }
+          } else if (audioCtx.createStereoPanner && p.pan !== undefined) {
+            const stereoPanner = audioCtx.createStereoPanner();
+            stereoPanner.pan.setValueAtTime(p.pan, now);
+            osc.connect(gain);
+            gain.connect(stereoPanner);
+            stereoPanner.connect(audioCtx.destination);
+          } else {
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+          }
+
+          osc.start(now);
+          osc.stop(now + p.duration);
+        });
+      } catch(e) {}
+    }
+
+    // ─── SSE Event Listener ───────────────────────────────────────────────
+    const evtSource = new EventSource("http://localhost:8128/api/stream");
+    evtSource.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      if (data.event === "intent") {
+        playChime(AUDIO_PROFILES.PULSE);
+      } else if (data.event === "cron_dispatch") {
+        playChime(AUDIO_PROFILES.SUCCESS);
+        const badge = document.createElement('div');
+        badge.className = 'routing-badge';
+        badge.textContent = `[Cron Dispatched → ${data.model}] ${data.tier}`;
+        messagesDiv.appendChild(badge);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      } else if (data.event === "dice_roll") {
+        playChime(AUDIO_PROFILES.DICE_ROLL);
+        diceHud.textContent = `Dice: ${data.action}`;
+        addMessage(`🎲 [Dice Engine Triggered] Roll: ${data.final_roll} (Chain: [${data.roll_sequence.join(', ')}]) → Action: ${data.action}`, 'system-msg', 'DICE ENGINE');
+      } else if (data.event === "dag_completed") {
+        playChime(AUDIO_PROFILES.DAG_STEP);
+        dagStatus.textContent = `DAG: ${data.dag_id} (${data.elapsed_ms}ms)`;
+        addMessage(`⚡ [Task DAG Finished] Pipeline: ${data.dag_id} (${data.elapsed_ms}ms) → Success: ${data.success}`, 'system-msg', 'TASK DAG');
+      }
+    };
+    evtSource.onerror = function(err) {
+      connStatus.innerHTML = '<span class="pulse-dot" style="background:#ff9e3a;"></span>Disconnected';
+      playChime(AUDIO_PROFILES.ERROR);
+    };
+    // ─── Status Fetcher ───────────────────────────────────────────────────
+    async function updateSystemStatus() {
+      const t0 = performance.now();
+      try {
+        const res = await fetch("http://localhost:8128/api/status");
+        const data = await res.json();
+        const t1 = performance.now();
+        const ping = Math.round(t1 - t0);
+
+        connStatus.innerHTML = '<span class="pulse-dot"></span>' +
+          (data.status === "ONLINE" ? "Live SSE Connected" : data.status);
+        cortexStatus.textContent = `Cortex: ${data.memory_cortex?.working_memory_count || 0} entries`;
+        modelStatus.textContent = `Kernel: ${data.kernel_state || 'ACTIVE'}`;
+        if (data.memory_cortex?.registers?.LAST_DICE_ACTION) {
+          diceHud.textContent = `Dice: ${data.memory_cortex.registers.LAST_DICE_ACTION}`;
+        }
+        footerPing.innerHTML = `<span class="pulse-dot"></span>${ping}ms telemetry`;
+      } catch(e) {
+        connStatus.innerHTML = '<span class="pulse-dot" style="background:#ff9e3a;"></span>Offline';
+        footerPing.innerHTML = `<span class="pulse-dot" style="background:#ff9e3a;"></span>offline`;
+      }
+    }
+
+    // ─── Auto-update status every 5 seconds ───────────────────────────────
+    setInterval(updateSystemStatus, 5000);
+
+    // Initialize status fetch
+    updateSystemStatus();
+
+    // ─── Message Builder ──────────────────────────────────────────────────
+    function addMessage(text, cls, meta) {
+      const div = document.createElement('div');
+      div.className = `message-bubble ${cls}`;
+      div.textContent = text;
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'msg-meta';
+      metaDiv.textContent = meta;
+      div.appendChild(metaDiv);
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function addRoutingInfo(routing) {
+      const badge = document.createElement('div');
+      badge.className = 'routing-badge';
+      badge.textContent = `[Routed → ${routing.model}] Tier: ${routing.tier} | Confidence: ${(routing.confidence * 100).toFixed(0)}% | Reason: ${routing.reason}`;
+      messagesDiv.appendChild(badge);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // ─── Send Intent ──────────────────────────────────────────────────────
+    async function sendIntent() {
+      const prompt = inputBox.value.trim();
+      if (!prompt) return;
+      addMessage(prompt, 'user-msg', 'YOU');
+      inputBox.value = '';
+      sendBtn.disabled = true;
+      playChime(AUDIO_PROFILES.DISPATCH);
+
+      try {
+        const res = await fetch("http://localhost:8128/api/intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+
+        if (data.kernel_response) {
+          addMessage(data.kernel_response, 'agent-msg', 'MARKUS OS');
+        }
+        if (data.routing_decision) {
+          addRoutingInfo(data.routing_decision);
+        }
+        if (data.cortex_entries !== undefined) {
+          cortexStatus.textContent = `Cortex: ${data.cortex_entries} entries`;
+        }
+        modelStatus.textContent = `Model: ${data.routing_decision?.model || '—'}`;
+      } catch (err) {
+        const errMsg = err.message || 'Connection refused. Ensure markus_server.py is running.';
+        addMessage(`[Error] ${errMsg}`, 'agent-msg', 'SYSTEM');
+        playChime(AUDIO_PROFILES.ERROR);
+      } finally {
+        sendBtn.disabled = false;
+        inputBox.focus();
+      }
+    }
+
+    // ─── Event Handlers ───────────────────────────────────────────────────
+    sendBtn.disabled = false;
+    inputBox.addEventListener('keydown', e => {
+      if (e.ctrlKey && e.key === 'Enter') sendIntent();
+    });
+    sendBtn.addEventListener('click', sendIntent);
+
+    // ─── History Panel ────────────────────────────────────────────────────
+    document.getElementById('historyToggle').addEventListener('click', () => {
+      const panel = document.getElementById('historyPanel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // ─── Dice Roll Handler ────────────────────────────────────────────────
+    const diceRollBtn = document.getElementById('diceRollBtn');
+    const diceIcon = document.getElementById('diceIcon');
+    const diceBtnText = document.getElementById('diceBtnText');
+
+    diceRollBtn.addEventListener('click', async () => {
+      diceRollBtn.disabled = true;
+      diceBtnText.textContent = 'Rolling...';
+      diceIcon.style.display = 'inline-block';
+      diceIcon.style.animation = 'spin 0.5s infinite linear';
+      playChime(AUDIO_PROFILES.DISPATCH);
+
+      try {
+        const res = await fetch("http://localhost:8128/api/dice/roll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        const data = await res.json();
+        playChime(AUDIO_PROFILES.DICE_ROLL);
+        diceHud.textContent = `Dice: ${data.action}`;
+        addMessage(`🎲 Rolled a ${data.final_roll} (Sequence: [${data.roll_sequence.join(', ')}])\nAction: ${data.action}\nPrompt: ${data.prompt}`, 'agent-msg', 'DICE ENGINE');
+      } catch (err) {
+        addMessage(`[Dice Roll Error] ${err.message || err}`, 'system-msg', 'DICE ERROR');
+        playChime(AUDIO_PROFILES.ERROR);
+      } finally {
+        diceRollBtn.disabled = false;
+        diceBtnText.textContent = 'Roll Dice';
+        diceIcon.style.animation = 'none';
+      }
+    });
+
+    // ─── Load Conversation History ────────────────────────────────────────
+    function loadHistory() {
+      const panel = document.getElementById('historyPanel');
+      const entries = JSON.parse(localStorage.getItem('markusChatHistory') || '[]');
+      panel.innerHTML = '<h3>Conversation History</h3>' +
+        entries.slice(-10).reverse().map((h, i) =>
+          `<div class="history-item" onclick="loadConversation(${i})">${h.prompt.substring(0, 40)}...</div>`
+        ).join('');
+    }
+
+    // ─── Save Conversation ────────────────────────────────────────────────
+    function saveConversation(prompt) {
+      const entries = JSON.parse(localStorage.getItem('markusChatHistory') || '[]');
+      entries.push({prompt, ts: Date.now()});
+      if (entries.length > 20) entries.shift(); // Keep last 20
+      localStorage.setItem('markusChatHistory', JSON.stringify(entries));
+      loadHistory();
+    }
+
+    // Save conversation on send
+    const origSend = sendIntent;
+    sendIntent = async function() {
+      const prompt = inputBox.value.trim();
+      if (prompt) saveConversation(prompt);
+      await origSend();
+    };
+
+    // ─── Initialize ───────────────────────────────────────────────────────
+    function initUI() {
+      updateSystemStatus();
+      loadHistory();
+      // Auto-size textarea
+      inputBox.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.max(this.scrollHeight, 50) + 'px';
+      });
+    }
+    initUI();
+  </script>
+</body>
+</html>

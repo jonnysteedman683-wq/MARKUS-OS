@@ -1,0 +1,16 @@
+{
+  "3aebf4fafdb561507e1bf822054615370a6f52876601705b09e9e7f93f201172": {
+    "candidate": {
+      "intent_hash": "3aebf4fafdb561507e1bf822054615370a6f52876601705b09e9e7f93f201172",
+      "predicted_action": "UPGRADE_UI",
+      "ast_transform_hint": "def roll_dice(): ...",
+      "confidence": 0.95,
+      "computed_at": 1786756178.6589763,
+      "execution_cost_estimate": 12.5,
+      "result_preview": null
+    },
+    "hit_count": 1,
+    "last_used": 1786756178.6607177,
+    "is_verified": true
+  }
+}

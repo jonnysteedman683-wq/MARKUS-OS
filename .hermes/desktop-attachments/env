@@ -1,0 +1,10 @@
+# OMNIBUS API Keys
+# Add your keys between the quotes below.
+
+# Cloud Providers
+OPENAI_API_KEY=""
+ANTHROPIC_API_KEY=""
+GEMINI_API_KEY="AQ.Ab8RN6K-V7pTUbQt7_mlOZuT_vVdllMu2VLrp1YUhFjg7gRPpg"
+
+# Local Ollama Settings (Usually http://localhost:11434)
+OLLAMA_URL="http://localhost:11434"
