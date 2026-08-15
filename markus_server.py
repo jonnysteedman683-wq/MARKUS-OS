@@ -60,6 +60,9 @@ active_dags: Dict[str, TaskDAG] = {
     "default_dag": TaskDAG("default_dag")
 }
 
+# Public alias for request handler (used by standalone bootstrap)
+Handler = MarkusRequestHandler
+
 # SSE event broadcast listeners
 sse_subscribers: List[queue.Queue] = []
 sse_lock = threading.Lock()
