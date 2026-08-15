@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from markus_db import PersistentCortexDB
+from markus_debate_pipeline import MarkusDebatePipeline
 
 logger = logging.getLogger("Markus.DiceEngine")
 
@@ -159,6 +160,31 @@ class MarkusDiceEngine:
         self.cortex.set_register("LAST_DICE_ACTION", action_label)
         self.cortex.set_register("LAST_DICE_ROLL", current_roll)
         self.cortex.set_register("LAST_DICE_SEQUENCE", json.dumps(rolls))
+
+        # Phase 1: Run multi-agent debate before executing any upgrade
+        debate = MarkusDebatePipeline()
+        verdict = await debate.conduct_debate(
+            action_label=action_label,
+            upgrade_prompt=prompt,
+            proposed_changes=[
+                f"Execute {action_label} upgrade cycle",
+                f"Roll sequence: {rolls}",
+                f"Dispatch prompt generated for autonomous execution"
+            ],
+            risk_level="MEDIUM" if current_roll in (2, 5) else "LOW"
+        )
+
+        # Log debate verdict to cortex
+        self.cortex.append_thought(
+            cycle_id, "MARKUS_DICE_ENGINE_DEBATE",
+            f"Debate verdict: {verdict.winning_candidate} (confidence={verdict.confidence:.1%}, "
+            f"consensus={'REACH' if verdict.consensus_reached else 'BLOCKED'})",
+            {"cycle_id": cycle_id, "confident_proceed": verdict.consensus_reached}
+        )
+
+        print(f"[DICE] Debate verdict: {verdict.winning_candidate} | "
+              f"Confidence: {verdict.confidence:.1%} | "
+              f"Consensus: {'REACH' if verdict.consensus_reached else 'BLOCKED'}")
 
         return current_roll, rolls
 
