@@ -42,12 +42,68 @@ class TaskNode:
             return round((self.end_time - self.start_time) * 1000, 2)
         return 0.0
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize current node state and metadata for UI/API consumption."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "dependencies": list(self.dependencies),
+            "state": self.state.value,
+            "result": self.result,
+            "error": self.error,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "runtime_ms": self.runtime_ms
+        }
+
 class TaskDAG:
     """Directed Acyclic Graph orchestrator for multi-agent task execution."""
 
     def __init__(self, dag_id: str = "default_dag") -> None:
         self.dag_id = dag_id
         self.nodes: Dict[str, TaskNode] = {}
+
+    def to_spec(self) -> Dict[str, Any]:
+        """Returns the full DAG specification and node status map."""
+        return {
+            "dag_id": self.dag_id,
+            "has_cycles": self.detect_cycles() if self.nodes else False,
+            "nodes": [n.to_dict() for n in self.nodes.values()],
+            "node_count": len(self.nodes)
+        }
+
+    async def step_node(self, node_id: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Execute a single specific ready node in isolation (Step-Stepping mode)."""
+        node = self.nodes.get(node_id)
+        if not node:
+            raise ValueError(f"Node '{node_id}' not found in DAG '{self.dag_id}'")
+
+        # Verify dependencies
+        for dep_id in node.dependencies:
+            dep_node = self.nodes.get(dep_id)
+            if not dep_node or dep_node.state != NodeState.COMPLETED:
+                raise RuntimeError(f"Cannot step node '{node_id}': dependency '{dep_id}' is not COMPLETED.")
+
+        node.state = NodeState.RUNNING
+        node.start_time = time.time()
+        try:
+            dep_results = {dep_id: self.nodes[dep_id].result for dep_id in node.dependencies}
+            if context:
+                dep_results.update(context)
+
+            if asyncio.iscoroutinefunction(node.action):
+                node.result = await node.action(dep_results)
+            else:
+                node.result = node.action(dep_results)
+            node.state = NodeState.COMPLETED
+        except Exception as exc:
+            node.error = str(exc)
+            node.state = NodeState.FAILED
+            logger.error(f"Single step failed on node {node.id}: {exc}")
+        finally:
+            node.end_time = time.time()
+
+        return node.to_dict()
 
     def add_node(
         self,

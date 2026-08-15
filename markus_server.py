@@ -51,6 +51,10 @@ acoustic_synapse = MarkusAcousticSynapse()
 complexity_governor = MarkusComplexityGovernor()
 speculative_cache = MarkusSpeculativeCache()
 
+active_dags: Dict[str, TaskDAG] = {
+    "default_dag": TaskDAG("default_dag")
+}
+
 # SSE event broadcast listeners
 sse_subscribers: List[queue.Queue] = []
 sse_lock = threading.Lock()
@@ -137,6 +141,22 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 with sse_lock:
                     if client_queue in sse_subscribers:
                         sse_subscribers.remove(client_queue)
+
+        elif self.path.startswith("/api/dag/spec"):
+            dag_id = "default_dag"
+            if "?" in self.path:
+                query = self.path.split("?")[1]
+                for param in query.split("&"):
+                    if param.startswith("dag_id="):
+                        dag_id = param.split("=")[1]
+            
+            dag = active_dags.get(dag_id)
+            if not dag:
+                dag = TaskDAG(dag_id)
+                active_dags[dag_id] = dag
+
+            self._set_headers(200)
+            self.wfile.write(json.dumps(dag.to_spec()).encode("utf-8"))
 
         elif self.path == "/api/cortex/hot":
             count = 10
@@ -508,6 +528,35 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self._set_headers(500)
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
+        elif self.path == "/api/dag/step":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("utf-8")
+            try:
+                data = json.loads(body) if body else {}
+                dag_id = data.get("dag_id", "default_dag")
+                node_id = data.get("node_id")
+                if not node_id:
+                    raise ValueError("node_id is required for stepping")
+
+                dag = active_dags.get(dag_id)
+                if not dag or node_id not in dag.nodes:
+                    raise ValueError(f"DAG '{dag_id}' or node '{node_id}' not found")
+
+                loop = asyncio.new_event_loop()
+                step_res = loop.run_until_complete(dag.step_node(node_id, context=data.get("context")))
+                loop.close()
+
+                broadcast_sse_event("dag_node_stepped", {
+                    "dag_id": dag_id,
+                    "node": step_res
+                })
+
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"status": "STEPPED", "node": step_res}).encode("utf-8"))
+            except Exception as exc:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+
         elif self.path == "/api/dag/execute":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length).decode("utf-8")
@@ -516,7 +565,13 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 dag_id = data.get("dag_id", f"dag_{int(time.time())}")
                 nodes_spec = data.get("nodes", [])
 
-                dag = TaskDAG(dag_id)
+                dag = active_dags.get(dag_id)
+                if not dag:
+                    dag = TaskDAG(dag_id)
+                    active_dags[dag_id] = dag
+                else:
+                    dag.nodes.clear()
+
                 for n_spec in nodes_spec:
                     nid = n_spec["id"]
                     name = n_spec.get("name", nid)

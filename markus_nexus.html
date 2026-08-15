@@ -716,23 +716,25 @@
 
         <!-- View 2: Multi-Agent Task DAG Subsystem -->
         <div class="subview-pane" id="pane-dag-view">
-          <div class="dag-graph-view">
-            <div class="panel-title" style="margin-bottom:12px;">Multi-Agent Task Dependency Graph (Topological Kahn Engine)</div>
-            <div id="dagCardContainer">
-              <div class="dag-node-card">
-                <div>
-                  <strong style="color:var(--cyan);">task_root</strong>
-                  <div style="color:var(--text-muted); font-size:0.75rem;">Subsystem Invariants Verification</div>
-                </div>
-                <span class="chip" style="color:var(--emerald);"><span class="chip-dot"></span>VERIFIED</span>
+          <div class="dag-graph-view" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="panel-title" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
+              <span>Multi-Agent Task Dependency Graph & Step Stepper</span>
+              <div style="display:flex; gap:8px;">
+                <button id="addDagNodeBtn" class="view-tab" style="padding:4px 10px; font-size:0.72rem; border:1px solid var(--cyan); color:var(--cyan);">+ Add Node</button>
+                <button id="runEntireDagBtn" class="send-action-btn" style="padding:4px 12px; font-size:0.72rem;">Run Full Pipeline</button>
               </div>
-              <div class="dag-node-card">
-                <div>
-                  <strong style="color:var(--cyan);">task_ast_eval</strong>
-                  <div style="color:var(--text-muted); font-size:0.75rem;">ReVeal AST Sandboxed Test Matrix</div>
-                </div>
-                <span class="chip" style="color:var(--emerald);"><span class="chip-dot"></span>PASSED</span>
+            </div>
+
+            <!-- Interactive Canvas Node-Editor Surface -->
+            <div style="position:relative; height:240px; background:rgba(3,7,18,0.7); border:1px solid var(--border-dim); border-radius:10px; overflow:hidden;">
+              <canvas id="dag-node-canvas" style="position:absolute; inset:0; width:100%; height:100%; cursor:crosshair;"></canvas>
+              <div style="position:absolute; bottom:8px; right:12px; font-family:var(--font-mono); font-size:0.68rem; color:var(--text-dim);">
+                Topological Kahn Dependency Resolution • Drag / Click to Step
               </div>
+            </div>
+
+            <div id="dagCardContainer" style="display:flex; flex-direction:column; gap:8px;">
+              <!-- Dynamically populated DAG Node Cards with Step Buttons -->
             </div>
           </div>
         </div>
@@ -919,6 +921,7 @@
         const activePane = document.getElementById(targetId);
         if (activePane) activePane.classList.add("active");
 
+        if (tab.dataset.view === "dag-view") fetchDagTelemetry();
         if (tab.dataset.view === "matrix-view") fetchMatrixTelemetry();
         if (tab.dataset.view === "governor-view") fetchGovernorTelemetry();
       });
@@ -1074,6 +1077,146 @@
     }
     setInterval(updateSystemTelemetry, 4000);
     updateSystemTelemetry();
+
+    // ─── Interactive Canvas Node-Editor & Task DAG Stepper ────────────────
+    const dagCanvas = document.getElementById("dag-node-canvas");
+    const dagCtx = dagCanvas ? dagCanvas.getContext("2d") : null;
+    let dagNodes = [
+      { id: "fetch_invariants", name: "Fetch Invariants", x: 60, y: 120, state: "COMPLETED", deps: [] },
+      { id: "ast_sandbox", name: "ReVeal AST Eval", x: 220, y: 70, state: "COMPLETED", deps: ["fetch_invariants"] },
+      { id: "vector_sync", name: "Cortex Vector Sync", x: 220, y: 170, state: "READY", deps: ["fetch_invariants"] },
+      { id: "deploy_node", name: "Deploy Node Matrix", x: 400, y: 120, state: "PENDING", deps: ["ast_sandbox", "vector_sync"] }
+    ];
+
+    function drawDagCanvas() {
+      if (!dagCanvas || !dagCtx) return;
+      dagCanvas.width = dagCanvas.parentElement.clientWidth;
+      dagCanvas.height = dagCanvas.parentElement.clientHeight;
+      dagCtx.clearRect(0, 0, dagCanvas.width, dagCanvas.height);
+
+      // Draw Edges with Animated Glow
+      dagNodes.forEach(node => {
+        node.deps.forEach(depId => {
+          const parent = dagNodes.find(n => n.id === depId);
+          if (parent) {
+            dagCtx.beginPath();
+            dagCtx.moveTo(parent.x, parent.y);
+            dagCtx.bezierCurveTo((parent.x + node.x)/2, parent.y, (parent.x + node.x)/2, node.y, node.x, node.y);
+            dagCtx.strokeStyle = parent.state === "COMPLETED" ? "rgba(0, 255, 136, 0.5)" : "rgba(0, 240, 255, 0.25)";
+            dagCtx.lineWidth = 2;
+            dagCtx.stroke();
+          }
+        });
+      });
+
+      // Draw Nodes
+      dagNodes.forEach(n => {
+        dagCtx.save();
+        dagCtx.beginPath();
+        dagCtx.arc(n.x, n.y, 16, 0, Math.PI * 2);
+        
+        let color = "#00f0ff";
+        if (n.state === "COMPLETED") color = "#00ff88";
+        if (n.state === "RUNNING") color = "#ffaa00";
+        if (n.state === "FAILED") color = "#ff0077";
+
+        dagCtx.fillStyle = "rgba(3, 7, 18, 0.85)";
+        dagCtx.strokeStyle = color;
+        dagCtx.lineWidth = 2.5;
+        dagCtx.shadowBlur = n.state === "RUNNING" || n.state === "COMPLETED" ? 12 : 4;
+        dagCtx.shadowColor = color;
+        dagCtx.fill();
+        dagCtx.stroke();
+        dagCtx.restore();
+
+        // Label
+        dagCtx.fillStyle = "#e0f2fe";
+        dagCtx.font = "10px 'Fira Code', monospace";
+        dagCtx.textAlign = "center";
+        dagCtx.fillText(n.name, n.x, n.y + 28);
+      });
+    }
+
+    async function fetchDagTelemetry() {
+      const container = document.getElementById("dagCardContainer");
+      drawDagCanvas();
+      try {
+        const res = await fetch("http://localhost:8128/api/dag/spec");
+        const data = await res.json();
+        container.innerHTML = "";
+
+        (data.nodes || []).forEach(node => {
+          const card = document.createElement("div");
+          card.className = "dag-node-card";
+          card.innerHTML = `
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <strong style="color:var(--cyan); font-family:var(--font-mono);">${node.id}</strong>
+                <span style="font-size:0.75rem; color:var(--text-main); font-weight:600;">${node.name}</span>
+              </div>
+              <div style="color:var(--text-muted); font-size:0.72rem; margin-top:3px; font-family:var(--font-mono);">
+                Deps: [${(node.dependencies || []).join(', ') || 'none'}] • Runtime: ${node.runtime_ms}ms
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="chip" style="color:${node.state === 'COMPLETED' ? 'var(--emerald)' : (node.state === 'RUNNING' ? 'var(--amber)' : 'var(--cyan)')};">
+                <span class="chip-dot"></span>${node.state}
+              </span>
+              <button class="view-tab" style="padding:4px 8px; font-size:0.7rem; border:1px solid var(--emerald); color:var(--emerald);" onclick="stepDagNode('${node.id}')">
+                ▶ Step
+              </button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (err) {
+        container.innerHTML = `<div style="color:var(--amber);">Failed to load DAG spec: ${err.message}</div>`;
+      }
+    }
+
+    window.stepDagNode = async function(nodeId) {
+      playChime(440, 659.25, 0.15);
+      try {
+        const res = await fetch("http://localhost:8128/api/dag/step", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ node_id: nodeId })
+        });
+        const data = await res.json();
+        if (data.status === "STEPPED") {
+          playChime(587.33, 880, 0.25);
+          appendChatMessage(`⚡ **Task DAG Node Stepped:** \`${nodeId}\` → **State:** \`${data.node?.state}\` (${data.node?.runtime_ms}ms)`, "agent", "DAG STEPPER");
+          fetchDagTelemetry();
+        } else {
+          appendChatMessage(`[DAG Step Fault] ${data.error}`, "system", "ERROR");
+        }
+      } catch (err) {
+        appendChatMessage(`[DAG Step Fault] ${err.message}`, "system", "ERROR");
+      }
+    };
+
+    document.getElementById("runEntireDagBtn")?.addEventListener("click", async () => {
+      playChime(392, 783.99, 0.25);
+      try {
+        const res = await fetch("http://localhost:8128/api/dag/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dag_id: "interactive_pipeline",
+            nodes: [
+              { id: "step_1", name: "Inspect Cortex", dependencies: [], code: "print('Cortex Verified')" },
+              { id: "step_2", name: "Evaluate AST", dependencies: ["step_1"], code: "print('AST Green')" },
+              { id: "step_3", name: "Consensus Consensus", dependencies: ["step_2"], code: "print('Consensus 100%')" }
+            ]
+          })
+        });
+        const data = await res.json();
+        appendChatMessage(`⚡ **Executed Full Task DAG:** \`${data.dag_id}\` (${data.elapsed_ms}ms) • Success: \`${data.success}\``, "agent", "DAG ENGINE");
+        fetchDagTelemetry();
+      } catch (err) {
+        appendChatMessage(`[DAG Run Fault] ${err.message}`, "system", "ERROR");
+      }
+    });
 
     // ─── Dynamic Model Matrix Telemetry ───────────────────────────────────
     async function fetchMatrixTelemetry() {
