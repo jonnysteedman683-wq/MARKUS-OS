@@ -76,6 +76,10 @@ class CoEvolutionOrchestrator:
         self.cortex_ring = MarkusSharedRingBuffer(
             name="markus_cortex_ring", capacity=256, slot_size=1024, create=True
         )
+        # Initialize the three new evolution loops
+        self.reflexion_engine = ReflexionLoopEngine(cortex=self.cortex)
+        self.population_engine = PopulationDiceEngine(population_size=10, cortex=self.cortex)
+        self.redteam_engine = RedTeamOrchestrator()
         self.cycle_counter = 0
         self._reward_log: List[Dict[str, Any]] = []
 
@@ -322,6 +326,35 @@ class CoEvolutionOrchestrator:
 
         # Phase 6: Research (only for Technical Alternative)
         research_result = await self.phase_research(action_label)
+
+        # Phase 6b: Reflexion Loop (act → observe → reflect → refine)
+        # Stolen pattern: collect trajectory, critique, refine weights
+        try:
+            reflexion_result = await self.reflexion_engine.run_reflexion_cycle(max_retries=2)
+            logger.info(f"[CoEvo] Reflexion: {reflexion_result['issues_found']} issues, "
+                       f"success={reflexion_result['success']}")
+        except Exception as e:
+            logger.warning(f"[CoEvo] Reflexion loop error: {e}")
+
+        # Phase 6c: Population Dice Evolution
+        # Stolen pattern: tournament selection, exploit, explore, replace
+        try:
+            pop_result = self.population_engine.evolve_generation(evaluations_per_genome=2)
+            logger.info(f"[CoEvo] Population: gen={pop_result['generation']}, "
+                       f"avg_fitness={pop_result['avg_fitness']:.4f}")
+        except Exception as e:
+            logger.warning(f"[CoEvo] Population dice error: {e}")
+
+        # Phase 6d: Red Team Adversarial Testing
+        # Stolen pattern: red team mutation testing → blue team fixes → validation
+        if self.cycle_counter % 3 == 0:  # Run red team every 3rd cycle
+            try:
+                redteam_result = await self.redteam_engine.run_redteam_cycle()
+                logger.info(f"[CoEvo] RedTeam: {redteam_result['mutations_tested']} mutations, "
+                           f"{redteam_result['vulnerabilities_found']} vulns, "
+                           f"{redteam_result['fixes_applied']} fixes")
+            except Exception as e:
+                logger.warning(f"[CoEvo] RedTeam error: {e}")
 
         # Phase 7: Reward Feedback
         reward = self.phase_reward(action_label, validation_passed, health_passed)
