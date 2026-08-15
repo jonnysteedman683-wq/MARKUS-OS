@@ -30,6 +30,7 @@ from markus_checkpoint import MarkusCheckpointManager
 from markus_acoustic_synapse import MarkusAcousticSynapse
 from markus_complexity_governor import MarkusComplexityGovernor
 from markus_speculative_cache import MarkusSpeculativeCache
+from markus_prompt_matrix import MarkusPromptSynthesisMatrix
 
 logger = logging.getLogger("Markus.Server")
 
@@ -50,6 +51,7 @@ checkpoint_mgr = MarkusCheckpointManager(db=kernel.memory.db)
 acoustic_synapse = MarkusAcousticSynapse()
 complexity_governor = MarkusComplexityGovernor()
 speculative_cache = MarkusSpeculativeCache()
+prompt_matrix = MarkusPromptSynthesisMatrix(db=kernel.memory.db)
 
 active_dags: Dict[str, TaskDAG] = {
     "default_dag": TaskDAG("default_dag")
@@ -141,6 +143,11 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 with sse_lock:
                     if client_queue in sse_subscribers:
                         sse_subscribers.remove(client_queue)
+
+        elif self.path == "/api/prompt/personas":
+            res = prompt_matrix.list_personas()
+            self._set_headers(200)
+            self.wfile.write(json.dumps(res).encode("utf-8"))
 
         elif self.path.startswith("/api/dag/spec"):
             dag_id = "default_dag"
@@ -348,6 +355,38 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 }
                 self._set_headers(200)
                 self.wfile.write(json.dumps(res_data).encode("utf-8"))
+            except Exception as exc:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+
+        elif self.path == "/api/prompt/synthesize":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("utf-8")
+            try:
+                data = json.loads(body) if body else {}
+                user_input = data.get("prompt", "")
+                persona = data.get("persona", "AUTONOMOUS_CODER")
+                include_ex = data.get("include_exemplars", True)
+                max_ex = data.get("max_exemplars", 3)
+
+                synth = prompt_matrix.synthesize_prompt(
+                    user_input=user_input,
+                    persona=persona,
+                    include_exemplars=include_ex,
+                    max_exemplars=max_ex,
+                    context_registers=kernel.memory.l1_registers
+                )
+
+                res = {
+                    "persona": synth.persona_name,
+                    "system_prompt": synth.system_prompt,
+                    "user_prompt": synth.user_prompt,
+                    "token_estimate": synth.token_estimate,
+                    "exemplars": synth.exemplars,
+                    "metadata": synth.metadata
+                }
+                self._set_headers(200)
+                self.wfile.write(json.dumps(res).encode("utf-8"))
             except Exception as exc:
                 self._set_headers(500)
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
