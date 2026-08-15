@@ -31,6 +31,7 @@ from markus_acoustic_synapse import MarkusAcousticSynapse
 from markus_complexity_governor import MarkusComplexityGovernor
 from markus_speculative_cache import MarkusSpeculativeCache
 from markus_prompt_matrix import MarkusPromptSynthesisMatrix
+from markus_capabilities import CapabilityRegistry
 from markus_capability_synthesizer import MarkusCapabilitySynthesizer
 
 logger = logging.getLogger("Markus.Server")
@@ -53,7 +54,7 @@ acoustic_synapse = MarkusAcousticSynapse()
 complexity_governor = MarkusComplexityGovernor()
 speculative_cache = MarkusSpeculativeCache()
 prompt_matrix = MarkusPromptSynthesisMatrix(db=kernel.memory.db)
-capability_synthesizer = MarkusCapabilitySynthesizer(registry=capability_registry, sandbox=sandbox)
+capability_synthesizer = MarkusCapabilitySynthesizer(registry=CapabilityRegistry(), sandbox=sandbox)
 
 active_dags: Dict[str, TaskDAG] = {
     "default_dag": TaskDAG("default_dag")
