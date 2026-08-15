@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hive Command Center</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #060810;
+      --panel: rgba(10, 14, 28, 0.92);
+      --border: rgba(0, 240, 255, 0.25);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #00f0ff;
+      --accent-2: #ff00ea;
+      --success: #00ff88;
+      --warn: #ffbb00;
+      --danger: #ff3c3c;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+    }
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 12px;
+      gap: 10px;
+    }
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #fff, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.82rem;
+      transition: all .2s ease;
+    }
+    .tab:hover { border-color: var(--accent); color: #fff; }
+    .tab.active {
+      background: linear-gradient(135deg, rgba(0,240,255,0.18), rgba(255,0,234,0.18));
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(0,240,255,0.25);
+    }
+    .main-stage {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      min-height: 0;
+    }
+    .panel {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      backdrop-filter: blur(10px);
+    }
+    .panel.active { display: flex; }
+    .panel h2 {
+      margin: 0 0 6px 0;
+      font-size: 1.05rem;
+      color: #fff;
+    }
+    .panel .meta {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .card .title {
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+    }
+    .pill.success { color: var(--success); border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.08); }
+    .pill.warn { color: var(--warn); border-color: rgba(255,187,0,0.3); background: rgba(255,187,0,0.08); }
+    .pill.danger { color: var(--danger); border-color: rgba(255,60,60,0.3); background: rgba(255,60,60,0.08); }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .btn:hover { border-color: var(--accent); box-shadow: 0 0 10px rgba(0,240,255,0.25); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    th { color: var(--muted); font-weight: 700; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .empty {
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand"><i class="fas fa-microchip"></i> HIVE COMMAND CENTER</div>
+      <nav class="tabs" id="tabBar">
+        <button class="tab active" data-panel="panel-chat">Chat</button>
+        <button class="tab" data-panel="panel-status">Status</button>
+        <button class="tab" data-panel="panel-phase">Phase Groups</button>
+        <button class="tab" data-panel="panel-memory">Memory</button>
+        <button class="tab" data-panel="panel-learning">Learning</button>
+        <button class="tab" data-panel="panel-tools">Tools</button>
+        <button class="tab" data-panel="panel-brainstorm">ML Brainstorm</button>
+        <button class="tab" data-panel="panel-arise">ARISE</button>
+      </nav>
+      <div class="toolbar">
+        <span id="globalStatus" class="pill">disconnected</span>
+        <button id="connectBtn" class="btn">Connect Neurocore</button>
+      </div>
+    </header>
+
+    <section class="main-stage">
+      <article class="panel active" id="panel-chat">
+        <h2>Unified Chat</h2>
+        <div id="chatMessagesStream" style="flex:1; overflow:auto; display:flex; flex-direction:column; gap:12px;"></div>
+        <footer style="display:flex; gap:10px;">
+          <textarea id="chatInputField" rows="1" placeholder="Send an intent through the swarm..." style="flex:1; background:rgba(14,20,36,0.8); border:1px solid var(--border); border-radius:12px; padding:10px 12px; color:#fff; font-family:'Inter',sans-serif; font-size:0.95rem; outline:none; resize:none;"></textarea>
+          <button id="chatSendBtn" class="btn" style="background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#060810; font-weight:900;">Send</button>
+        </footer>
+      </article>
+
+      <article class="panel" id="panel-status">
+        <h2>Swarm Status</h2>
+        <div class="grid-2">
+          <div class="card"><div class="title"><i class="fas fa-heartbeat"></i> Health</div><div id="statusHealth" class="meta">—</div></div>
+          <div class="card"><div class="title"><i class="fas fa-network-wired"></i> Peers</div><div id="statusPeers" class="meta">—</div></div>
+          <div class="card"><div class="title"><i class="fas fa-bolt"></i> Last Intent</div><div id="statusLastIntent" class="meta">—</div></div>
+          <div class="card"><div class="title"><i class="fas fa-clock"></i> Last Provider</div><div id="statusLastProvider" class="meta">—</div></div>
+          <div class="card"><div class="title"><i class="fas fa-list-ol"></i> Queue</div><div id="statusQueue" class="meta">—</div></div>
+          <div class="card"><div class="title"><i class="fas fa-shield-alt"></i> Hermes</div><div id="statusHermes" class="meta">—</div></div>
+        </div>
+        <button id="refreshStatusBtn" class="btn">Refresh</button>
+      </article>
+
+      <article class="panel" id="panel-phase">
+        <h2>Phase Groups</h2>
+        <div class="meta">Concurrent dispatch buckets by deterministic phase hash.</div>
+        <pre id="phaseOutput" class="meta mono" style="white-space: pre-wrap;">—</pre>
+        <button id="refreshPhaseBtn" class="btn">Refresh</button>
+      </article>
+
+      <article class="panel" id="panel-memory">
+        <h2>Intent Memory</h2>
+        <div class="meta">Recent intents and failures.</div>
+        <div style="overflow:auto;">
+          <table>
+            <thead><tr><th>id</th><th>intent</th><th>provider</th><th>confidence</th><th>status</th><th>latency</th><th>ts</th></tr></thead>
+            <tbody id="memoryTableBody"><tr><td colspan="7" class="empty">No memory yet.</td></tr></tbody>
+          </table>
+        </div>
+        <button id="refreshMemoryBtn" class="btn">Refresh</button>
+      </article>
+
+      <article class="panel" id="panel-learning">
+        <h2>Learning</h2>
+        <div class="meta">Provider stats and calibration hints.</div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="title">Provider Stats</div>
+            <table>
+              <thead><tr><th>provider</th><th>count</th><th>success</th><th>avg latency</th></tr></thead>
+              <tbody id="learningProviderBody"><tr><td colspan="4" class="empty">No samples.</td></tr></tbody>
+            </table>
+          </div>
+          <div class="card">
+            <div class="title">Threshold Suggestion</div>
+            <div id="learningThreshold" class="meta">—</div>
+          </div>
+        </div>
+        <button id="refreshLearningBtn" class="btn">Refresh</button>
+      </article>
+
+      <article class="panel" id="panel-tools">
+        <h2>Function Tools</h2>
+        <div class="meta">Registered tools and test harness.</div>
+        <div class="toolbar">
+          <button id="loadToolsBtn" class="btn">Load Tools</button>
+          <select id="toolSelect"><option value="">Select tool</option></select>
+          <button id="runToolBtn" class="btn">Run Echo</button>
+        </div>
+        <pre id="toolsOutput" class="meta mono" style="white-space: pre-wrap;">—</pre>
+      </article>
+
+      <article class="panel" id="panel-brainstorm">
+        <h2>ML Frontier Lab</h2>
+        <div class="meta">Brainstormed architecture synthesis.</div>
+        <div class="toolbar">
+          <button id="runBrainstormBtn" class="btn">Synthesize</button>
+          <button id="sendBrainstormToChatBtn" class="btn">Send to Chat</button>
+        </div>
+        <pre id="brainstormOutput" class="meta mono" style="white-space: pre-wrap;">—</pre>
+      </article>
+
+      <article class="panel" id="panel-arise">
+        <h2>ARISE</h2>
+        <div class="meta">Swarm simulation control and status.</div>
+        <div class="grid-2">
+          <div class="card"><div class="title">Status</div><div id="ariseStatus" class="meta">—</div></div>
+          <div class="card"><div class="title">Controls</div>
+            <div class="toolbar">
+              <button id="ariseStartBtn" class="btn">Start</button>
+              <button id="arisePauseBtn" class="btn">Pause</button>
+              <button id="ariseInspectBtn" class="btn">Inspect</button>
+            </div>
+          </div>
+        </div>
+        <pre id="ariseOutput" class="meta mono" style="white-space: pre-wrap;">—</pre>
+      </article>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function(){
+      const tabBar = document.getElementById('tabBar');
+      const panels = Array.from(document.querySelectorAll('.panel'));
+      function switchTab(panelId) {
+        panels.forEach(p => p.classList.toggle('active', p.id === panelId));
+        tabBar.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === panelId));
+      }
+      tabBar.addEventListener('click', (e) => {
+        const btn = e.target.closest('.tab');
+        if (!btn) return;
+        switchTab(btn.dataset.panel);
+      });
+
+      // Global connect helper
+      window.connectNeurocore = async function(){
+        const res = await fetch('/api/neurocore/connect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ baseUrl:'http://localhost:8080/v1', enableHermes:true })});
+        const data = await res.json();
+        const el = document.getElementById('globalStatus');
+        if (data.success) {
+          el.textContent = 'connected';
+          el.classList.add('success');
+          el.classList.remove('warn','danger');
+        } else {
+          el.textContent = 'error';
+          el.classList.add('danger');
+        }
+        return data;
+      };
+      document.getElementById('connectBtn').addEventListener('click', window.connectNeurocore);
+
+      // Status refresh
+      async function refreshStatus(){
+        const res = await fetch('/api/neurocore/status');
+        const data = await res.json();
+        document.getElementById('statusHealth').textContent = data.success ? (data.connected ? 'healthy' : 'disconnected') : 'error';
+        document.getElementById('statusPeers').textContent = `${data.peers?.length || 0} peers`;
+        document.getElementById('statusLastIntent').textContent = data.lastIntent || '—';
+        document.getElementById('statusLastProvider').textContent = data.lastProvider || '—';
+        document.getElementById('statusQueue').textContent = `${data.queueSize ?? 0}`;
+        document.getElementById('statusHermes').textContent = data.hermesAvailable ? 'available' : 'unavailable';
+      }
+      document.getElementById('refreshStatusBtn').addEventListener('click', refreshStatus);
+
+      // Phase refresh
+      async function refreshPhase(){
+        const res = await fetch('/api/neurocore/phase-groups');
+        const data = await res.json();
+        document.getElementById('phaseOutput').textContent = JSON.stringify(data.summary || {}, null, 2);
+      }
+      document.getElementById('refreshPhaseBtn').addEventListener('click', refreshPhase);
+
+      // Memory refresh
+      async function refreshMemory(){
+        const res = await fetch('/api/neurocore/memory');
+        const data = await res.json();
+        const tbody = document.getElementById('memoryTableBody');
+        const rows = (data.recent || []).map(r => `<tr>
+          <td class="mono">${r.id}</td>
+          <td>${r.intent}</td>
+          <td>${r.provider || ''}</td>
+          <td>${r.confidence ?? ''}</td>
+          <td>${r.status}</td>
+          <td class="mono">${r.latencyMs ?? ''}</td>
+          <td class="mono">${new Date(r.timestamp).toLocaleTimeString()}</td>
+        </tr>`).join('');
+        tbody.innerHTML = rows || '<tr><td colspan="7" class="empty">No memory yet.</td></tr>';
+      }
+      document.getElementById('refreshMemoryBtn').addEventListener('click', refreshMemory);
+
+      // Learning refresh
+      async function refreshLearning(){
+        const res = await fetch('/api/neurocore/learning');
+        const data = await res.json();
+        const tbody = document.getElementById('learningProviderBody');
+        const rows = (data.providerStats || []).map(s => `<tr>
+          <td>${s.provider}</td>
+          <td>${s.count}</td>
+          <td>${(s.successRate*100).toFixed(1)}%</td>
+          <td class="mono">${s.avgLatencyMs ?? '—'}</td>
+        </tr>`).join('');
+        tbody.innerHTML = rows || '<tr><td colspan="4" class="empty">No samples.</td></tr>';
+        document.getElementById('learningThreshold').textContent = data.thresholdSuggestion ? JSON.stringify(data.thresholdSuggestion) : '—';
+      }
+      document.getElementById('refreshLearningBtn').addEventListener('click', refreshLearning);
+
+      // Tools
+      document.getElementById('loadToolsBtn').addEventListener('click', async ()=>{
+        const res = await fetch('/api/neurocore/tools');
+        const data = await res.json();
+        const sel = document.getElementById('toolSelect');
+        sel.innerHTML = '<option value="">Select tool</option>' + (data.tools || []).map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+        document.getElementById('toolsOutput').textContent = JSON.stringify(data, null, 2);
+      });
+      document.getElementById('runToolBtn').addEventListener('click', async ()=>{
+        const tool = document.getElementById('toolSelect').value;
+        const body = tool ? { tool, arguments: { message: 'hello from unified hive ui' } } : { tool:'echo', arguments:{ message:'hello from unified hive ui' } };
+        const res = await fetch('/api/neurocore/tools/call', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const data = await res.json();
+        document.getElementById('toolsOutput').textContent = JSON.stringify(data, null, 2);
+      });
+
+      // Brainstorm
+      document.getElementById('runBrainstormBtn').addEventListener('click', async ()=>{
+        document.getElementById('brainstormOutput').textContent = 'Synthesizing...';
+        await new Promise(r => setTimeout(r, 300));
+        document.getElementById('brainstormOutput').textContent = JSON.stringify({ synthesis: 'v75.0 Zenith-inspired sparse mixture', modules: ['Flow-Matching ToT','Titans TTT','Sub-Bit Router'] }, null, 2);
+      });
+      document.getElementById('sendBrainstormToChatBtn').addEventListener('click', ()=>{
+        const text = document.getElementById('brainstormOutput').textContent;
+        const input = document.getElementById('chatInputField');
+        if (input) { input.value = 'Brainstorm result: ' + text; }
+        switchTab('panel-chat');
+      });
+
+      // ARISE
+      document.getElementById('ariseStartBtn').addEventListener('click', async ()=>{
+        document.getElementById('ariseOutput').textContent = 'Starting ARISE...';
+        await new Promise(r => setTimeout(r, 200));
+        document.getElementById('ariseOutput').textContent = JSON.stringify({ status:'started', speed:1.0, agents:40 }, null, 2);
+      });
+      document.getElementById('arisePauseBtn').addEventListener('click', async ()=>{
+        document.getElementById('ariseOutput').textContent = 'Paused.';
+      });
+      document.getElementById('ariseInspectBtn').addEventListener('click', async ()=>{
+        document.getElementById('ariseOutput').textContent = JSON.stringify({ selected:null, visible:true, fps:60 }, null, 2);
+      });
+
+      // Initial status
+      refreshStatus();
+    })();
+  </script>
+</body>
+</html>

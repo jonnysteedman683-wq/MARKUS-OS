@@ -1,0 +1,40 @@
+{
+  "name": "markus-os",
+  "version": "1.0.0-alpha",
+  "description": "MARKUS OS Autonomous Agent Command Deck",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "productName": "MARKUS OS",
+  "author": "Jonny Steedman",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^24.13.0"
+  },
+  "dependencies": {},
+  "build": {
+    "appId": "com.markus.os",
+    "productName": "MARKUS OS",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "markus-os.html",
+      "electron-main.js",
+      "electron-preload.js",
+      "package.json",
+      "markus_server.py",
+      "markus_kernel.py"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "recipe": {
+    "name": "Orb console + bridge (scripts workspace)",
+    "kind": "python-stdlib",
+    "bootstrap": [],
+    "build": [],
+    "test": [
+      "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/test_orb_leases.py",
+      "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/test_memory_compress.py",
+      "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/test_orb_hack.py",
+      "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/test_proposals_ab.py",
+      "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/test_orb_evolver.py",
+      "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/test_roster_feedback.py",
+      "python C:/Users/jonny/HERMES-HIVE/hive-core/test_registry.py",
+      "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/test_bridge_regression.py",
+      "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/battle_test.py"
+    ],
+    "start": "python C:/Users/jonny/AppData/Local/hermes/profiles/hermes-dev1/scripts/orb_bridge.py --port 8124",
+    "port": 8124,
+    "readinessPath": "/health",
+    "evidence": [
+      "Python stdlib workspace (no package manifest); test = unit suites + live bridge regression.",
+      "Bridge is single-instance guarded (PID lock, exit 75 on dup) and served by a watchdog cron.",
+      "test_bridge_regression exercises all 14 GET/POST endpoints against the live bridge."
+    ]
+  },
+  "updatedAt": "2026-08-14T15:05:00+00:00"
+}

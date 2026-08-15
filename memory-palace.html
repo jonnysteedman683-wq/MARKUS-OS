@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>memory palace</title>
+<style>
+  :root {
+    --amber: #42ff42;
+    --violet: #ff42f0;
+    --ink: #efe6ff;
+    --dim: rgba(239, 230, 255, 0.55);
+    --faint: rgba(239, 230, 255, 0.25);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05010d; }
+  body {
+    font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+    color: var(--ink);
+  }
+  #scene { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: grab; }
+  #scene.dragging { cursor: grabbing; }
+
+  /* header */
+  .hud {
+    position: fixed;
+    z-index: 20;
+    pointer-events: none;
+  }
+  .palace-title {
+    top: 26px; left: 30px;
+  }
+  .palace-title .t1 {
+    font-size: 15px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--amber);
+    text-shadow: 0 0 18px rgba(66, 255, 66, 0.55);
+  }
+  .palace-title .t2 {
+    margin-top: 6px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  /* stats chip */
+  .stats {
+    top: 26px; right: 30px;
+    text-align: right;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--dim);
+    line-height: 1.9;
+    text-transform: uppercase;
+  }
+  .stats b { color: var(--amber); font-weight: 400; }
+  .stats .v { color: var(--violet); }
+
+  /* controls */
+  .controls {
+    position: fixed;
+    bottom: 26px; left: 30px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 20;
+  }
+  .search-box {
+    background: rgba(16, 8, 34, 0.72);
+    border: 1px solid rgba(255, 66, 240, 0.3);
+    border-radius: 10px;
+    padding: 9px 13px;
+    color: var(--ink);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    width: 250px;
+    backdrop-filter: blur(10px);
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .search-box:focus { border-color: rgba(66, 255, 66, 0.55); box-shadow: 0 0 16px rgba(66, 255, 66, 0.15); }
+  .search-box::placeholder { color: rgba(239, 230, 255, 0.3); letter-spacing: 0.05em; }
+
+  .btn {
+    background: rgba(16, 8, 34, 0.72);
+    border: 1px solid rgba(255, 66, 240, 0.3);
+    border-radius: 10px;
+    color: var(--dim);
+    font-size: 11px;
+    font-family: inherit;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 9px 14px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    pointer-events: auto;
+  }
+  .btn:hover { color: var(--amber); border-color: rgba(66, 255, 66, 0.55); box-shadow: 0 0 14px rgba(66, 255, 66, 0.15); }
+  .timeline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(12, 6, 26, 0.7);
+    border: 1px solid rgba(156, 64, 255, 0.2);
+  }
+  .timeline input[type="range"] { flex: 1; accent-color: var(--amber); }
+  .timeline span { font-size: 9px; letter-spacing: 0.1em; color: var(--faint); white-space: nowrap; }
+
+  .back-btn {
+    position: fixed;
+    top: 26px; right: 190px;
+    z-index: 21;
+    text-decoration: none;
+  }
+
+  /* legend */
+  .legend {
+    position: fixed;
+    bottom: 26px; right: 30px;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    text-align: right;
+    line-height: 2;
+    z-index: 20;
+  }
+  .legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .lg-mem { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .lg-int { background: var(--violet); box-shadow: 0 0 8px var(--violet); }
+  .lg-dis { background: #ffc842; box-shadow: 0 0 8px #ffc842; }
+
+  /* inspector */
+  .inspector {
+    position: fixed;
+    right: 30px; top: 50%;
+    transform: translateY(-50%);
+    width: 320px;
+    max-height: 44vh;
+    background: linear-gradient(160deg, rgba(16, 8, 34, 0.9), rgba(6, 2, 16, 0.92));
+    border: 1px solid rgba(255, 66, 240, 0.3);
+    border-radius: 14px;
+    padding: 15px 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(66, 255, 66, 0.06);
+    backdrop-filter: blur(14px);
+    z-index: 25;
+    display: none;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 64, 255, 0.3) transparent;
+  }
+  .inspector.show { display: block; }
+  .insp-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .insp-head .close {
+    margin-left: auto;
+    background: none; border: none;
+    color: var(--faint);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .insp-head .close:hover { color: var(--amber); }
+  .insp-kind { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--violet); margin-bottom: 6px; }
+  .insp-date { font-size: 9px; color: var(--faint); margin-bottom: 10px; }
+  .insp-text { font-size: 12.5px; line-height: 1.6; color: var(--dim); white-space: pre-wrap; word-break: break-word; }
+  .insp-links { margin-top: 12px; font-size: 9px; color: var(--faint); line-height: 1.8; }
+  .insp-links b { color: var(--amber); font-weight: 400; }
+
+  .hint {
+    position: fixed;
+    bottom: 78px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--faint);
+    z-index: 20;
+    text-align: center;
+    opacity: 0.8;
+  }
+  .err {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(80, 10, 20, 0.9);
+    border: 1px solid rgba(255, 80, 100, 0.5);
+    color: #ff8090;
+    font-size: 12px;
+    padding: 9px 16px;
+    border-radius: 10px;
+    z-index: 99;
+    display: none;
+    max-width: 80vw;
+    text-align: center;
+  }
+
+  /* ── persistent memory list sidebar ── */
+  .mem-list {
+    position: fixed;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 270px;
+    max-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(170deg, rgba(12, 6, 26, 0.85), rgba(5, 2, 14, 0.9));
+    border: 1px solid rgba(255, 66, 240, 0.22);
+    border-radius: 14px;
+    backdrop-filter: blur(12px);
+    z-index: 22;
+    overflow: hidden;
+  }
+  .mem-list-head {
+    padding: 12px 14px 9px;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border-bottom: 1px solid rgba(255, 66, 240, 0.14);
+  }
+  .mem-list-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 64, 255, 0.3) transparent;
+  }
+  .mem-row {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 10.5px;
+    line-height: 1.45;
+    color: var(--dim);
+    transition: background 0.15s, color 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .mem-row:hover { background: rgba(66, 255, 66, 0.07); color: var(--ink); }
+  .mem-row.sel {
+    background: rgba(66, 255, 66, 0.12);
+    color: var(--amber);
+    border-left-color: var(--amber);
+  }
+  .mem-row .mdate { font-size: 8px; color: var(--faint); white-space: nowrap; flex-shrink: 0; }
+  .mem-row .mtext { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<header class="hud palace-title">
+  <div class="t1">◈ memory palace</div>
+  <div class="t2">hermes · supermemory · semantic topology</div>
+</header>
+
+<aside class="hud stats" id="stats">
+  <div><b id="stNodes">0</b> memories</div>
+  <div><b class="v" id="stLinks">0</b> connections</div>
+  <div><b id="stCluster">0</b> clusters</div>
+</aside>
+
+<!-- persistent memory list — every memory is always here, no search needed -->
+<aside class="mem-list" id="memList">
+  <div class="mem-list-head">all memories</div>
+  <div class="mem-list-body" id="memListBody"></div>
+</aside>
+
+<div class="controls">
+  <input class="search-box" id="search" type="text" placeholder="search memories…" />
+  <button class="btn" id="btnReset">⟳ reset</button>
+  <button class="btn" id="btnPlay" title="play memory timeline">▶ timeline</button>
+</div>
+<div class="timeline" id="timeline" hidden>
+  <input type="range" id="tlSlider" min="0" max="100" value="100" />
+  <span id="tlLabel">all memories</span>
+</div>
+
+<a class="btn back-btn" href="/">← back to emeris</a>
+
+<div class="legend">
+  <div><span class="dot lg-mem"></span>memory</div>
+  <div><span class="dot lg-int"></span>intent</div>
+  <div><span class="dot lg-dis"></span>distilled (compressed)</div>
+</div>
+
+<div class="hint" id="hint">scroll to zoom · drag to pan · click to inspect</div>
+
+<aside class="inspector" id="inspector">
+  <div class="insp-head"><span id="inspKind">memory</span><button class="close" id="inspClose">✕</button></div>
+  <div class="insp-date" id="inspDate"></div>
+  <div class="insp-text" id="inspText"></div>
+  <div class="insp-links" id="inspLinks"></div>
+</aside>
+
+<div class="err" id="errBox"></div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════
+   MEMORY PALACE — a force-directed topology of the hive's memories.
+   Nodes = supermemory memories (+ swarm intents, in violet).
+   Edges = semantic similarity (word-overlap cosine) between them.
+   Physics: repulsion + spring + mild gravity, velocity-Verlet.
+   ─────────────────────────────────────────────────────────────── */
+const canvas = document.getElementById("scene");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener("resize", resize);
+resize();
+
+/* ── palette (theme-synced) ── */
+const C_MEM = [66, 255, 66];     /* memory = neon green */
+const C_INT = [255, 66, 240];    /* intent = magenta */
+const C_DIS = [255, 200, 66];    /* distill = warm gold (compressed) */
+const C_EDGE = [156, 64, 255];
+const C_EDGE_HOT = [66, 255, 66];
+function rgb(c, a) { return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
+
+/* ── state ── */
+const nodes = [];    /* {id, kind:'memory'|'intent', label, text, date, x, y, vx, vy, r, deg} */
+const edges = [];    /* {a, b, w} node indices + weight */
+const nodeMap = new Map();
+let hover = null;    /* node index under cursor */
+let selected = null; /* node index clicked */
+let dragIdx = -1;    /* node being dragged */
+let cam = { x: 0, y: 0, k: 0.8 };   /* pan + zoom (start slightly out so labels fit) */
+let searchQ = "";
+let frozen = false;  /* physics settled → static layout (re-enabled while dragging) */
+
+/* ── tokenization + similarity ── */
+const STOP = new Set(("the a an and or but of to in on at for with from by as is are was were be been being it its this that these those i you he she we they my your our their me him her us them not no so if then than too very just like about what which who whom when where why how do does did have has had can could will would should may might shall must there here all any both each few more most other some such only own same s t don doesn didn ain isn aren wasn weren hasn haven hadn").split(" "));
+function tokens(text) {
+  const t = (text || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w));
+  return t;
+}
+function cosine(a, b) {
+  if (!a.length || !b.length) return 0;
+  const m = new Map();
+  a.forEach((w) => m.set(w, (m.get(w) || 0) + 1));
+  let dot = 0, na = 0, nb = 0;
+  const bm = new Map();
+  b.forEach((w) => bm.set(w, (bm.get(w) || 0) + 1));
+  for (const [w, c] of m) { na += c * c; if (bm.has(w)) dot += c * bm.get(w); }
+  for (const [, c] of bm) nb += c * c;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb) || 1);
+}
+
+/* ── data load ── */
+async function load() {
+  showErr(null);
+  let memories = [], intents = [];
+  try {
+    const r = await fetch("/memories").then((x) => x.json());
+    memories = (r && r.memories) || [];
+  } catch (e) { showErr("bridge unreachable: " + e.message); }
+  try {
+    const s = await fetch("/status").then((x) => x.json());
+    if (s && s.present) {
+      intents = Object.values(s.tasks || {}).map((t) => ({
+        id: "int:" + t.text.slice(0, 12),
+        content: "INTENT [" + (t.status || "?") + "] " + (t.text || ""),
+        created_at: t.first_seen || "",
+      }));
+    }
+  } catch (e) { /* non-fatal */ }
+  /* distilled memories (A1: SimpleMem-style compression summaries) */
+  let distills = [];
+  try {
+    const a = await fetch("/memory/archive").then((x) => x.json());
+    distills = (a && a.distills) || [];
+  } catch (e) { /* non-fatal */ }
+
+  /* build nodes: memories + intents */
+  nodes.length = 0; nodeMap.clear();
+  for (const m of memories) {
+    const tks = tokens(m.content);
+    if (!tks.length) continue;
+    nodes.push({ id: m.id, kind: "memory", text: m.content, date: m.created_at || "", tks, deg: 0, x: 0, y: 0, vx: 0, vy: 0, r: 4, label: m.content.replace(/\[USER\]|\[ASSISTANT\]|\[System[^\]]*\]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60) });
+  }
+  for (const it of intents) {
+    const tks = tokens(it.content);
+    if (!tks.length) continue;
+    nodes.push({ id: it.id, kind: "intent", text: it.content, date: it.created_at || "", tks, deg: 0, x: 0, y: 0, vx: 0, vy: 0, r: 5, label: it.text.replace(/^INTENT[^\]]*\]\s*/, "").slice(0, 40) });
+  }
+  /* distills: compressed memory summaries — distinct kind, bigger nodes */
+  for (const d of distills) {
+    const tks = tokens(d.text);
+    if (!tks.length) continue;
+    const n = d.source_ids ? d.source_ids.length : 1;
+    nodes.push({
+      id: "dist:" + (d.at || Date.now()),
+      kind: "distill",
+      text: d.text,
+      date: d.at ? new Date(d.at * 1000).toISOString() : "",
+      tks, deg: 0, x: 0, y: 0, vx: 0, vy: 0,
+      r: Math.min(9, 5 + n * 0.5),
+      label: (d.text || "").replace(/^\[(?:ORB|EMERIS)-DISTILL\]\s*/, "").slice(0, 50),
+      sources: n,
+    });
+  }
+  nodes.forEach((n) => { n.x = (Math.random() - 0.5) * W * 0.5; n.y = (Math.random() - 0.5) * H * 0.5; });
+
+  /* edges: rank ALL pairwise similarities, keep only the strongest so the
+     graph shows structure, not a hairball. With 124 near-similar memories a
+     per-node cap still yields ~100 links per node — global sparsification
+     keeps the topology meaningful. */
+  edges.length = 0;
+  const THRESH = 0.16, EDGE_BUDGET = Math.round(nodes.length * 1.6);
+  const scored = [];
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const s = cosine(nodes[i].tks, nodes[j].tks);
+      if (s >= THRESH) scored.push([i, j, s]);
+    }
+  }
+  scored.sort((a, b) => b[2] - a[2]);
+  const top = scored.slice(0, EDGE_BUDGET);
+  /* greedily accept: always keep the strongest; skip an edge only if both
+     endpoints are already saturated (prevents one hub absorbing everything) */
+  const degCap = Math.max(4, Math.ceil((EDGE_BUDGET * 2) / nodes.length));
+  const deg = new Array(nodes.length).fill(0);
+  for (const [i, j, s] of top) {
+    if (deg[i] >= degCap && deg[j] >= degCap) continue;
+    edges.push({ a: i, b: j, w: s });
+    deg[i]++; deg[j]++;
+  }
+  nodes.forEach((n, i) => { n.deg = deg[i]; });
+  nodes.forEach((n) => { n.r = 3 + Math.min(7, n.deg * 0.55); n.tlHidden = false; });
+  /* E1: timeline needs the sorted date axis */
+  tlSortedDates = nodes.map((n) => new Date(n.date || 0).getTime())
+    .filter((d) => d > 0).sort((a, b) => a - b);
+  renderMemList();
+  updateStats();
+}
+
+/* ── physics ── */
+const REP = 2400, SPRING = 0.018, GRAV = 0.0032, DAMP = 0.86;
+const REST = 82;   /* spring rest length — a little longer = more air between clusters */
+let settleFrames = 0;   /* consecutive frames with tiny energy → freeze */
+function step(dt) {
+  if (frozen) return;    /* static layout until something pokes it */
+  const n = nodes.length;
+  /* repulsion (O(n²) but n is small) */
+  for (let i = 0; i < n; i++) {
+    const a = nodes[i];
+    if (a.tlHidden) continue;    /* E1: hidden nodes are static */
+    let fx = 0, fy = 0;
+    for (let j = 0; j < n; j++) {
+      if (i === j) continue;
+      const b = nodes[j];
+      let dx = a.x - b.x, dy = a.y - b.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < 1) { dx = (Math.random() - 0.5); dy = (Math.random() - 0.5); }
+      const d = Math.sqrt(d2) + 0.001;
+      const f = REP / (d * d + 1);
+      fx += (dx / d) * f * 0.12;
+      fy += (dy / d) * f * 0.12;
+    }
+    /* gravity toward center */
+    fx -= a.x * GRAV; fy -= a.y * GRAV;
+    a.vx = (a.vx + fx * dt) * DAMP;
+    a.vy = (a.vy + fy * dt) * DAMP;
+  }
+  /* springs */
+  for (const e of edges) {
+    const a = nodes[e.a], b = nodes[e.b];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const d = Math.sqrt(dx * dx + dy * dy) + 0.001;
+    const f = SPRING * (d - REST) * (0.6 + e.w * 0.8);
+    a.vx += (dx / d) * f; a.vy += (dy / d) * f;
+    b.vx -= (dx / d) * f; b.vy -= (dy / d) * f;
+  }
+  /* integrate */
+  let energy = 0;
+  for (const n of nodes) {
+    n.x += n.vx * dt; n.y += n.vy * dt;
+    energy += n.vx * n.vx + n.vy * n.vy;
+  }
+  /* settle: when the graph stops moving, lock it — the palace becomes a
+     still, readable map instead of a perpetual jitter. Any drag re-wakes it. */
+  if (energy < 0.05) {
+    if (++settleFrames > 20) {
+      frozen = true;
+      nodes.forEach((n) => { n.vx = 0; n.vy = 0; });
+      settleFrames = 0;
+    }
+  } else {
+    settleFrames = 0;
+  }
+}
+
+/* ── rendering ── */
+function render(t) {
+  ctx.fillStyle = "#05010d";
+  ctx.fillRect(0, 0, W, H);
+  /* faint grid */
+  ctx.strokeStyle = "rgba(156,64,255,0.05)";
+  ctx.lineWidth = 1;
+  const gs = 60;
+  ctx.beginPath();
+  for (let x = (cam.x % gs); x < W; x += gs) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for (let y = (cam.y % gs); y < H; y += gs) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(W / 2 + cam.x, H / 2 + cam.y);
+  ctx.scale(cam.k, cam.k);
+
+  const hoverSet = new Set();
+  if (hover != null) {
+    for (const e of edges) {
+      if (e.a === hover) hoverSet.add(e.b);
+      if (e.b === hover) hoverSet.add(e.a);
+    }
+    hoverSet.add(hover);
+  }
+
+  /* edges */
+  for (const e of edges) {
+    const a = nodes[e.a], b = nodes[e.b];
+    if (a.tlHidden || b.tlHidden) continue;    /* E1: timeline gate */
+    const hot = (hover != null && (e.a === hover || e.b === hover)) || (selected != null && (e.a === selected || e.b === selected));
+    const alpha = hot ? 0.5 * (0.4 + e.w) : 0.10 * (0.3 + e.w);
+    ctx.strokeStyle = hot ? rgb(C_EDGE_HOT, alpha) : rgb(C_EDGE, alpha);
+    ctx.lineWidth = hot ? 1.6 : 0.7;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+
+  /* nodes — static, no twinkle (the palace is a still map once settled) */
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n.tlHidden) continue;   /* E1: timeline gate */
+    const dimmed = (hover != null && !hoverSet.has(i)) || (selected != null && !hoverSet.has(i) && selected !== i);
+    const col = n.kind === "intent" ? C_INT : n.kind === "distill" ? C_DIS : C_MEM;
+    const r = n.r * (dimmed ? 0.8 : 1);
+    /* glow */
+    const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 4);
+    g.addColorStop(0, rgb(col, dimmed ? 0.10 : 0.28));
+    g.addColorStop(1, rgb(col, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(n.x, n.y, r * 4, 0, Math.PI * 2); ctx.fill();
+    /* core */
+    ctx.fillStyle = rgb(col, dimmed ? 0.35 : 0.95);
+    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2); ctx.fill();
+    /* persistent label — level-of-detail: at the default zoom only nodes
+       with edges (deg ≥ 1) get labels so the center stays readable; zoom
+       in past 1.6× and every node labels up. The sidebar list carries the
+       full inventory. */
+    if (n.label) {
+      const fontSize = Math.min(14, Math.max(6.5, 9 * cam.k));
+      const minDeg = cam.k < 1.6 ? 1 : -1;   /* -1 = label everything */
+      if (fontSize >= 7 && n.deg >= minDeg) {
+        ctx.font = `${fontSize}px monospace`;
+        const labelW = ctx.measureText(n.label).width;
+        /* backing strip for readability over edges */
+        ctx.fillStyle = "rgba(5,1,13,0.72)";
+        ctx.fillRect(n.x + r + 5, n.y - fontSize * 0.55, labelW + 6, fontSize + 2);
+        ctx.fillStyle = dimmed ? "rgba(239,230,255,0.35)" : "rgba(239,230,255,0.85)";
+        ctx.fillText(n.label, n.x + r + 8, n.y + fontSize * 0.28);
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
+/* ── stats ── */
+function clusterCount() {
+  /* BFS over edges */
+  const seen = new Set(); let c = 0;
+  const adj = new Map();
+  edges.forEach((e) => { (adj.get(e.a) || adj.set(e.a, []).get(e.a)).push(e.b); (adj.get(e.b) || adj.set(e.b, []).get(e.b)).push(e.a); });
+  for (let i = 0; i < nodes.length; i++) {
+    if (seen.has(i)) continue;
+    c++;
+    const q = [i]; seen.add(i);
+    while (q.length) {
+      const u = q.pop();
+      for (const v of (adj.get(u) || [])) if (!seen.has(v)) { seen.add(v); q.push(v); }
+    }
+  }
+  return c;
+}
+function updateStats() {
+  document.getElementById("stNodes").textContent = nodes.length;
+  document.getElementById("stLinks").textContent = edges.length;
+  document.getElementById("stCluster").textContent = clusterCount();
+}
+
+/* ── interactions ── */
+function worldToScreen(x, y) { return { x: W / 2 + cam.x + x * cam.k, y: H / 2 + cam.y + y * cam.k }; }
+function screenToWorld(x, y) { return { x: (x - W / 2 - cam.x) / cam.k, y: (y - H / 2 - cam.y) / cam.k }; }
+function pickNode(mx, my) {
+  const p = screenToWorld(mx, my);
+  let best = -1, bd = 400;  /* px² in world units */
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    const d = (n.x - p.x) ** 2 + (n.y - p.y) ** 2;
+    const rr = (n.r * 3) ** 2;
+    if (d < rr && d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+canvas.addEventListener("pointermove", (e) => {
+  hover = pickNode(e.clientX, e.clientY);
+  if (dragIdx >= 0) {
+    const p = screenToWorld(e.clientX, e.clientY);
+    nodes[dragIdx].x = p.x; nodes[dragIdx].y = p.y;
+    nodes[dragIdx].vx = 0; nodes[dragIdx].vy = 0;
+  }
+});
+canvas.addEventListener("pointerdown", (e) => {
+  frozen = false; settleFrames = 0;   /* dragging re-wakes the physics */
+  const i = pickNode(e.clientX, e.clientY);
+  if (i >= 0) { dragIdx = i; canvas.classList.add("dragging"); }
+});
+canvas.addEventListener("pointerup", (e) => {
+  if (dragIdx >= 0) {
+    const i = pickNode(e.clientX, e.clientY);
+    if (i >= 0 && i === dragIdx) selectNode(i);
+    dragIdx = -1; canvas.classList.remove("dragging");
+  }
+});
+canvas.addEventListener("click", (e) => {
+  const i = pickNode(e.clientX, e.clientY);
+  if (i >= 0) selectNode(i);
+});
+canvas.addEventListener("dblclick", () => { if (selected != null) selected = null; updateInspector(null); });
+canvas.addEventListener("pointerleave", () => { hover = null; });
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  cam.k = Math.min(3.2, Math.max(0.25, cam.k * (e.deltaY < 0 ? 1.1 : 0.9)));
+}, { passive: false });
+let panning = false, px = 0, py = 0;
+canvas.addEventListener("pointerdown", (e) => {
+  if (pickNode(e.clientX, e.clientY) < 0) { panning = true; px = e.clientX; py = e.clientY; }
+});
+window.addEventListener("pointermove", (e) => {
+  if (panning && dragIdx < 0) { cam.x += e.clientX - px; cam.y += e.clientY - py; px = e.clientX; py = e.clientY; }
+});
+window.addEventListener("pointerup", () => { panning = false; });
+
+/* ── persistent memory list ── */
+const memListBody = document.getElementById("memListBody");
+function renderMemList() {
+  memListBody.innerHTML = "";
+  const seen = new Set();
+  nodes.forEach((n, i) => {
+    const key = (n.label || "").slice(0, 32);
+    if (seen.has(key)) return;      /* collapse near-duplicate captures */
+    seen.add(key);
+    const row = document.createElement("div");
+    row.className = "mem-row" + (selected === i ? " sel" : "");
+    row.dataset.idx = i;
+    const date = n.date ? n.date.slice(0, 10) : "";
+    const d = document.createElement("span");
+    d.className = "mdate"; d.textContent = date;
+    const t = document.createElement("span");
+    t.className = "mtext";
+    t.textContent = n.label || n.text.slice(0, 40);
+    t.title = n.text;
+    row.appendChild(d); row.appendChild(t);
+    row.addEventListener("click", () => selectNode(i));
+    memListBody.appendChild(row);
+  });
+}
+function syncMemList() {
+  memListBody.querySelectorAll(".mem-row").forEach((row) => {
+    row.classList.toggle("sel", Number(row.dataset.idx) === selected);
+  });
+  if (selected != null) {
+    const row = memListBody.querySelector(`.mem-row[data-idx="${selected}"]`);
+    if (row) row.scrollIntoView({ block: "nearest" });
+  }
+}
+
+/* ── inspector ── */
+function selectNode(i) {
+  selected = i;
+  updateInspector(nodes[i], i);
+  syncMemList();
+}
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function updateInspector(n, idx) {
+  const box = document.getElementById("inspector");
+  if (!n) { box.classList.remove("show"); return; }
+  document.getElementById("inspKind").textContent =
+    n.kind === "intent" ? "swarm intent" : n.kind === "distill" ? "distilled memory" : "memory";
+  document.getElementById("inspDate").textContent = n.date ? new Date(n.date).toLocaleString() : "";
+  document.getElementById("inspText").textContent = n.text;
+  /* connected neighbours (edges store node INDICES, not ids) */
+  const nb = [];
+  edges.forEach((e) => {
+    if (e.a === idx || e.b === idx) {
+      const other = nodes[e.a === idx ? e.b : e.a];
+      nb.push(other.label || other.text.slice(0, 30));
+    }
+  });
+  /* memory content is local (supermemory) but escape it regardless — cheap hygiene */
+  document.getElementById("inspLinks").innerHTML = nb.length
+    ? "<b>connected:</b> " + nb.slice(0, 6).map(esc).join(" · ")
+    : "<b>isolated memory</b> — no strong connections yet";
+  box.classList.add("show");
+}
+document.getElementById("inspClose").addEventListener("click", () => { selected = null; updateInspector(null); });
+document.getElementById("btnReset").addEventListener("click", () => {
+  cam = { x: 0, y: 0, k: 1 };
+  frozen = false; settleFrames = 0;
+  nodes.forEach((n) => { n.vx = 0; n.vy = 0; });
+});
+document.getElementById("search").addEventListener("input", (e) => {
+  searchQ = e.target.value.trim().toLowerCase();
+  if (searchQ) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].text.toLowerCase().includes(searchQ)) { selectNode(i); break; }
+    }
+  }
+});
+
+/* ── E1: memory timeline (time-lapse scrubber) ── */
+const tlSlider = document.getElementById("tlSlider");
+const tlLabel = document.getElementById("tlLabel");
+const btnPlay = document.getElementById("btnPlay");
+let tlPlaying = false, tlTimer = null;
+function tlApply() {
+  const v = parseInt(tlSlider.value, 10);
+  const cutoff = tlSortedDates[Math.floor((v / 100) * (tlSortedDates.length - 1))];
+  let visible = 0, shown = 0;
+  nodes.forEach((n) => {
+    const d = new Date(n.date || 0).getTime();
+    n.tlHidden = d > cutoff;
+    if (!n.tlHidden) visible++;
+  });
+  /* relayout on the visible set so the graph re-settles */
+  frozen = false; settleFrames = 0;
+  tlLabel.textContent = v === 100 ? "all memories" : `${visible} memories (${new Date(cutoff).toLocaleDateString()})`;
+}
+let tlSortedDates = [];
+btnPlay.addEventListener("click", () => {
+  tlPlaying = !tlPlaying;
+  btnPlay.textContent = tlPlaying ? "⏸ pause" : "▶ timeline";
+  if (tlPlaying) {
+    tlSlider.value = 0;
+    tlApply();
+    tlTimer = setInterval(() => {
+      let v = parseInt(tlSlider.value, 10);
+      v = Math.min(100, v + 2);
+      tlSlider.value = v;
+      tlApply();
+      if (v >= 100) { tlPlaying = false; btnPlay.textContent = "▶ timeline"; clearInterval(tlTimer); }
+    }, 120);
+  } else if (tlTimer) { clearInterval(tlTimer); }
+});
+tlSlider.addEventListener("input", () => { if (!tlPlaying) tlApply(); });
+
+/* ── loop ── */
+let lastT = performance.now();
+function frame(now) {
+  const dt = Math.min((now - lastT) / 1000, 0.05);
+  lastT = now;
+  step(dt * 60);
+  render(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+/* ── helpers ── */
+function showErr(msg) {
+  const el = document.getElementById("errBox");
+  if (!msg) { el.style.display = "none"; return; }
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+load().then(() => { requestAnimationFrame(frame); });
+</script>
+</body>
+</html>

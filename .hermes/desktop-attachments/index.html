@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OMNIBUS - Single Chat Interface</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Streamlined Single Chat Interface & Glowing Orb Styles */
+    body {
+      background: #060810;
+      color: #f0f2f5;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cosmic-app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 15px 20px;
+      box-sizing: border-box;
+    }
+
+    /* Header */
+    .cosmic-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: rgba(12, 16, 30, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+    }
+
+    .cosmic-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .cosmic-logo i {
+      font-size: 1.8rem;
+      color: #00f0ff;
+      filter: drop-shadow(0 0 10px #00f0ff);
+    }
+
+    .cosmic-title {
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #ffffff, #00f0ff, #ff00ea);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(0, 255, 136, 0.12);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      color: #00ff88;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 20px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: #00ff88;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #00ff88;
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    .ml-innovation-btn {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(255, 0, 234, 0.25));
+      color: #00f0ff;
+      border: 1px solid rgba(0, 240, 255, 0.6);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.25s ease;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    }
+
+    .ml-innovation-btn:hover {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.5), rgba(255, 0, 234, 0.5));
+      border-color: #ff00ea;
+      color: #ffffff;
+      box-shadow: 0 0 25px rgba(255, 0, 234, 0.6);
+      transform: translateY(-1px);
+    }
+
+    /* Interactive ML Brainstorming & Frontier Lab Modal */
+    .ml-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 6, 14, 0.85);
+      backdrop-filter: blur(20px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .ml-modal-overlay.active {
+      display: flex;
+    }
+
+    .ml-modal-content {
+      background: rgba(10, 14, 28, 0.95);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 1100px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 0 60px rgba(0, 240, 255, 0.3);
+      padding: 28px;
+      box-sizing: border-box;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .ml-modal-close-btn {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      transition: all 0.2s ease;
+    }
+
+    .ml-modal-close-btn:hover {
+      background: rgba(255, 0, 100, 0.4);
+      border-color: #ff0055;
+    }
+
+    /* Central Floating Rotating Glowing Orb Section */
+    .hero-orb-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 15px 0 5px 0;
+      position: relative;
+    }
+
+    .orb-wrapper {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: orbFloat 4s ease-in-out infinite;
+    }
+
+    @keyframes orbFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    #glowingOrbCanvas {
+      width: 180px;
+      height: 180px;
+      display: block;
+      filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.4));
+    }
+
+    .orb-status-text {
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 8px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .orb-status-text span {
+      color: #00f0ff;
+      font-weight: 800;
+    }
+
+    /* Chat Messages Main Area */
+    .chat-main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      margin-top: 10px;
+      background: rgba(8, 12, 24, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .chat-messages-stream {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message-card {
+      display: flex;
+      gap: 14px;
+      max-width: 88%;
+      animation: messageSlide 0.3s ease-out forwards;
+    }
+
+    @keyframes messageSlide {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-card.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-card.assistant {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .avatar.user {
+      background: linear-gradient(135deg, #7000ff, #ff00ea);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(255, 0, 234, 0.4);
+    }
+
+    .avatar.assistant {
+      background: linear-gradient(135deg, #00f0ff, #0070ff);
+      color: #060810;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+
+    .message-bubble {
+      padding: 14px 18px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .message-card.user .message-bubble {
+      background: linear-gradient(135deg, rgba(112, 0, 255, 0.35), rgba(255, 0, 234, 0.25));
+      border: 1px solid rgba(255, 0, 234, 0.35);
+      color: #ffffff;
+      border-top-right-radius: 4px;
+    }
+
+    .message-card.assistant .message-bubble {
+      background: rgba(14, 20, 36, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: #e2e8f0;
+      border-top-left-radius: 4px;
+    }
+
+    .code-block-wrapper {
+      background: #04060c;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 8px;
+      margin: 10px 0;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .code-block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 12px;
+      background: rgba(0, 240, 255, 0.08);
+      font-size: 0.75rem;
+      color: #00f0ff;
+    }
+
+    .code-block-content {
+      padding: 12px;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      color: #00ff88;
+      white-space: pre-wrap;
+    }
+
+    /* Quick Suggestions Pills */
+    .suggestions-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .suggestion-pill {
+      padding: 8px 14px;
+      background: rgba(0, 240, 255, 0.06);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      color: #00f0ff;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .suggestion-pill:hover {
+      background: rgba(0, 240, 255, 0.2);
+      border-color: #00f0ff;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    /* Chat Input Dock */
+    .chat-input-dock {
+      padding: 14px 20px;
+      background: rgba(6, 9, 20, 0.9);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .input-textarea-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    #chatInputField {
+      width: 100%;
+      background: rgba(14, 20, 36, 0.8);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      resize: none;
+      box-sizing: border-box;
+      max-height: 120px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    #chatInputField:focus {
+      border-color: #00f0ff;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+    }
+
+    .send-btn {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #00f0ff, #7000ff);
+      border: none;
+      border-radius: 12px;
+      color: #060810;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+      transition: all 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.7);
+    }
+
+    .action-icon-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .action-icon-btn:hover {
+      color: #00f0ff;
+      border-color: #00f0ff;
+      background: rgba(0, 240, 255, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="animated-bg"></div>
+
+  <div class="cosmic-app-container">
+    
+    <!-- Top Minimalist Header -->
+    <header class="cosmic-header">
+      <div class="cosmic-logo">
+        <i class="fas fa-microchip"></i>
+        <h1 class="cosmic-title">OMNIBUS AI</h1>
+        <div class="status-badge">
+          <div class="badge-dot"></div>
+          REAL LLM & TRANSCENDENT HYPER-MIND ENGINE v100000.0 ACTIVE
+        </div>
+        <div id="hiveSwarmStatus" class="status-badge" style="display:none;">
+          <div class="badge-dot"></div>
+          <span id="hiveSwarmStatusText">Hive Swarm Mind: Connecting...</span>
+        </div>
+        <div id="hiveQueueWidget" class="status-badge" style="display:none;">
+          <div class="badge-dot"></div>
+          <span id="hiveQueueText">Queue: 0</span>
+        </div>
+        <div id="hiveMemoryStatus" class="status-badge" style="display:none;">
+          <div class="badge-dot"></div>
+          <span id="hiveMemoryStatusText">Memory: —</span>
+        </div>
+        <div id="hiveLearningStatus" class="status-badge" style="display:none;">
+          <div class="badge-dot"></div>
+          <span id="hiveLearningStatusText">Learning: —</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="openMlBrainstormModalBtn" class="ml-innovation-btn">
+          <i class="fas fa-atom"></i> ML Frontier Lab
+        </button>
+
+        <select id="engineModeSelector" class="engine-selector-dropdown">
+          <option value="v10m_apex" selected>🌟 v10,000,000.0 (v10M) OMNI-SINGULARITY APEX ENGINE (QSNO / PL-HVSA / META-GRPO / TITANS-v3 / CFM-DoT / TDA / SUBBIT)</option>
+          <option value="v10m_qsno">⚡ v10M Quantum Spiking Neural Operator (QSNO-v10M)</option>
+          <option value="v10m_pl_hvsa">⚛️ v10M Poincaré-Lorentz Gyrovector Hyperbolic VSA (PL-HVSA)</option>
+          <option value="v10m_meta_grpo">🎯 v10M Meta-GRPO Process-Guided Latent MCTS Reasoner</option>
+          <option value="v10m_titans_v3">🧠 v10M Titans-v3 Test-Time Training (TTT-v3) Surprise Memory</option>
+          <option value="v10m_cfm_dot">🌊 v10M Continuous Flow-Matching Diffusion-of-Thought (CFM-DoT)</option>
+          <option value="v10m_tda">🛡️ v10M Topological Data Analysis (TDA) Homology Verifier</option>
+          <option value="v10m_subbit">💎 v10M SubBit-0.0001b Quantum Ternary GEMM Engine</option>
+          <option value="v100000_hypermind">🚀 v100000.0 OMNI-SINGULARITY TRANSCENDENT HYPER-MIND & INFINITE QUANTUM-RELATIVISTIC MACHINE INTELLIGENCE MASTER SUITE</option>
+          <option value="v100000_s12_symplectic">📐 v100000.0 S12 Symplectic-Calabi-Yau Kähler-Foliation SSM Engine (32,768-D)</option>
+          <option value="v100000_titans_v1000">🧠 v100000.0 Titans-v1000 Fast-Weight Meta-Hypergradient TTT Mind (10^1000 Tokens)</option>
+          <option value="v100000_subbit_000000000001b">⚡ v100000.0 0.000000000001-Bit Entropic Sinkhorn MoD-MoE Hyper-Router</option>
+          <option value="v100000_cfm_kinetic_mcts">🎯 v100000.0 CFM Kinetic SDE Riemannian Diff-Tree MCTS Reasoner</option>
+          <option value="v100000_swarm_rlvr_v100000">🐝 v100000.0 Swarm-RLVR + GRPO-v100000 Formal Lean4, Coq, Isabelle, Agda, Metamath, Z3 & Hol-Light Prover</option>
+          <option value="v100000_tda_betti_guard">🛡️ v100000.0 Vietoris-Rips Persistent Homology TDA Betti-Spectra Guard</option>
+          <option value="v100000_quantum_1quetta">⚛️ v100000.0 1-QuettaByte Dim Quantum-Phase VSA Symbol Binder (10^30-D)</option>
+          <option value="v100000_active_jepa">🌀 v100000.0 Spiking Liquid Neuromorphic Active-Inference JEPA World Model</option>
+          <option value="v100000_wavelet_kan_mla">🌊 v100000.0 Wavelet-KAN + DeepSeek-v3 MLA-v3 Continuous Engine</option>
+          <option value="v10000_godmind">👑 v10000.0 OMNI-INFINITE OMNIVERSAL SINGULARITY GOD-MIND & ULTRA-AUTONOMOUS HYPER-INTELLIGENCE MASTER SUITE</option>
+          <option value="v10000_s11_symplectic">📐 v10000.0 S11 Symplectic-Calabi-Yau Kähler-Foliation SSM Engine</option>
+          <option value="v10000_titans_v100">🧠 v10000.0 Titans-v100 Fast-Weight Meta-Hypergradient TTT Mind (1 RonnaByte Memory)</option>
+          <option value="v10000_subbit_0000000001b">⚡ v10000.0 0.000000001-Bit Entropic Sinkhorn MoD-MoE Hyper-Router</option>
+          <option value="v10000_cfm_kinetic_mcts">🎯 v10000.0 CFM Kinetic SDE Riemannian Diff-Tree MCTS Reasoner</option>
+          <option value="v10000_swarm_rlvr_v10000">🐝 v10000.0 Swarm-RLVR + GRPO-v10000 Formal Lean4, Coq, Isabelle, Agda, Metamath & Z3 Prover</option>
+          <option value="v10000_tda_betti_guard">🛡️ v10000.0 Vietoris-Rips Persistent Homology TDA Betti-Spectra Guard</option>
+          <option value="v10000_quantum_1ronna">⚛️ v10000.0 1-RonnaByte Dim Quantum-Phase VSA Symbol Binder</option>
+          <option value="v10000_active_jepa">🌀 v10000.0 Spiking Liquid Neuromorphic Active-Inference JEPA World Model</option>
+          <option value="v10000_wavelet_kan_mla">🌊 v10000.0 Wavelet-KAN + DeepSeek-v3 MLA-v3 Continuous Engine</option>
+          <option value="v5000_multiversal_hyper_intelligence">🚀 v5000.0 OMNI-MULTIVERSAL HYPER-INTELLIGENCE & META-AUTONOMOUS SINGULARITY MASTER SUITE</option>
+          <option value="v3000_cosmic_transcendent">🌌 v3000.0 OMNI-SINGULARITY COSMIC TRANSCENDENT OMNIPRESENCE & OMNISCIENCE MASTER SUITE</option>
+          <option value="v3000_s9_symplectic">📐 v3000.0 S9 Symplectic-Kähler Foliation SSM Engine</option>
+          <option value="v3000_titans_v30">🧠 v3000.0 Titans-v30 Fast-Weight Meta-Hypergradient TTT Mind (1 QuettaByte Memory)</option>
+          <option value="v3000_subbit_00000001b">⚡ v3000.0 0.00000001-Bit Entropic Sinkhorn MoD-MoE Hyper-Router</option>
+          <option value="v3000_cfm_kinetic_mcts">🎯 v3000.0 CFM Kinetic SDE Riemannian Diff-Tree MCTS Reasoner</option>
+          <option value="v3000_swarm_rlvr_v3000">🐝 v3000.0 Swarm-RLVR + GRPO-v3000 Formal Lean4, Coq, Isabelle, Agda & Metamath Prover</option>
+          <option value="v3000_tda_betti_guard">🛡️ v3000.0 Vietoris-Rips Persistent Homology TDA Betti-Spectra Guard</option>
+          <option value="v3000_quantum_1quetta">⚛️ v3000.0 1-QuettaByte Dim Quantum-Phase VSA Symbol Binder</option>
+          <option value="v3000_active_jepa">🌀 v3000.0 Spiking Liquid Neuromorphic Active-Inference JEPA World Model</option>
+          <option value="v2000_cosmic_omnipresence">🌌 v2000.0 OMNI-EXISTENTIAL COSMIC OMNIPRESENCE & OMNISCIENCE MASTER HYPER-GOD SUITE</option>
+          <option value="v2000_symplectic_s8">📐 v2000.0 Symplectic-Calabi-Yau S8 Kähler Manifold SSM Engine</option>
+          <option value="v2000_titans_v20">🧠 v2000.0 Titans-v20 Fast-Weight Meta-Hypergradient TTT Mind (1 RonnaByte Memory)</option>
+          <option value="v2000_subbit_0000001b">⚡ v2000.0 0.0000001-Bit Entropic Sinkhorn MoD-MoE Hyper-Router</option>
+          <option value="v2000_cfm_kinetic_mcts">🎯 v2000.0 CFM Kinetic SDE Riemannian Diff-Tree MCTS Reasoner</option>
+          <option value="v2000_swarm_rlvr_v2000">🐝 v2000.0 Swarm-RLVR + GRPO-v2000 Formal Lean4, Coq, Isabelle & Agda Verifier</option>
+          <option value="v2000_tda_betti_guard">🛡️ v2000.0 Vietoris-Rips Persistent Homology TDA Betti-Spectra Guard</option>
+          <option value="v2000_quantum_1ronna">⚛️ v2000.0 1-RonnaByte Dim Quantum-Phase VSA Symbol Binder</option>
+          <option value="v2000_active_jepa">🌀 v2000.0 Spiking Liquid Neuromorphic Active-Inference JEPA World Model</option>
+          <option value="v1000_cosmological_hypergod">🌌 v1000.0 Singularity Cosmological Hyper-God Master Suite (Infinite Zenith)</option>
+          <option value="v1000_riemannian_s7">📐 v1000.0 Riemannian-Kähler S7 Non-Euclidean SSM Engine</option>
+          <option value="v1000_titans_v10">🧠 v1000.0 Titans-v10 Fast-Weight Meta-Gradient TTT Mind (1 Zettabyte Memory)</option>
+          <option value="v1000_subbit_000001b">⚡ v1000.0 0.000001-Bit Entropic Sinkhorn MoD-MoE Hyper-Router</option>
+          <option value="v1000_cfm_diff_mcts">🎯 v1000.0 Continuous Flow-Matching SDE Riemannian Diff-Tree MCTS</option>
+          <option value="v1000_swarm_rlvr_v1000">🐝 v1000.0 Swarm-RLVR + GRPO-v1000 Lean4 & Coq Theorem Prover</option>
+          <option value="v1000_tda_guard">🛡️ v1000.0 Vietoris-Rips Persistent Homology TDA Manifold Guard</option>
+          <option value="v1000_quantum_1yotta">⚛️ v1000.0 1-Yottabyte Dim Quantum-Phase VSA Symbol Binder</option>
+          <option value="v1000_active_jepa">🌀 v1000.0 Neuromorphic Liquid Active-Inference JEPA World Model</option>
+          <option value="v600_multiversal_hypergod">🌌 v600.0 Singularity Multiversal Hyper-God Master Suite (Frontier Supreme)</option>
+          <option value="v600_riemannian_s6">📐 v600.0 Riemannian-Grassmannian S6 Non-Euclidean SSM Engine</option>
+          <option value="v600_titans_v8">🧠 v600.0 Titans-v8 Fast-Weight Meta-Gradient TTT Mind (1 Exabyte Memory)</option>
+          <option value="v600_subbit_00001b">⚡ v600.0 0.00001-Bit Entropic Sinkhorn MoD-MoE Hyper-Router</option>
+          <option value="v600_cfm_diff_mcts">🎯 v600.0 Continuous Flow-Matching SDE Riemannian Diff-Tree MCTS</option>
+          <option value="v600_swarm_rlvr_v10">🐝 v600.0 Swarm-RLVR + GRPO-v10 Lean4 Formal Theorem Prover</option>
+          <option value="v600_tda_guard">🛡️ v600.0 Vietoris-Rips Persistent Homology TDA Manifold Guard</option>
+          <option value="v600_quantum_1exa">⚛️ v600.0 1-Exascale Dim Quantum-Phase VSA Symbol Binder</option>
+          <option value="v600_active_jepa">🌀 v600.0 Neuromorphic Liquid Active-Inference JEPA World Model</option>
+          <option value="v500_supreme_hypergod">🌌 v500.0 Singularity Supreme Hyper-God Master Suite (Omniverse Frontier)</option>
+          <option value="v500_hdgtne_tda">📐 v500.0 HDGTNE-v2 Hyperbolic Persistent TDA Homology Verifier</option>
+          <option value="v500_titans_v7">🧠 v500.0 Titans-v7 Infinite TTT Neural Mind (100 Trillion+ Memory)</option>
+          <option value="v500_subbit_0001b">⚡ v500.0 0.0001-Bit Sub-Bit Ternary Sinkhorn MoD-MoE Router</option>
+          <option value="v500_flow_sde_mcts">🎯 v500.0 Stochastic Flow Matching SDE Riemannian Diff-Tree MCTS</option>
+          <option value="v500_rlvr_v9">🐝 v500.0 Swarm-RLVR + GRPO-v9 Multi-Agent Policy Optimizer</option>
+          <option value="v500_wavelet_kan_mla">🌊 v500.0 Wavelet-KAN + DeepSeek-v3 MLA-v2 Hybrid Engine</option>
+          <option value="v500_quantum_1q">⚛️ v500.0 1-Quadrillion Dim Quantum-Phase VSA Symbol Binder</option>
+          <option value="v500_liquid_jepa">🌀 v500.0 Neuromorphic Liquid Spiking Active-JEPA World Model</option>
+          <option value="v400_supreme_apex">👑 v400.0 Singularity Supreme Apex Master Suite (Next-Gen Frontier)</option>
+          <option value="v400_hdgtne_tda">📐 v400.0 HD-GTNE Hyperbolic TDA Homology Verifier</option>
+          <option value="v400_titans_v6">🧠 v400.0 Titans-v6 Infinite-Context Mind (1 Trillion+ Memory)</option>
+          <option value="v400_subbit_0001b">⚡ v400.0 0.001-Bit Sub-Bit Ternary Sinkhorn MoD Router</option>
+          <option value="v400_flow_mcts">🎯 v400.0 Stochastic Flow-Matching Diff-Tree MCTS Reasoner</option>
+          <option value="v400_rlvr_v8">🐝 v400.0 Swarm-RLVR Policy Optimizer + GRPO-v8</option>
+          <option value="v400_wavelet_kan_mla">🌊 v400.0 Wavelet-KAN Multi-Head Latent Attention (W-KAN-MLA)</option>
+          <option value="v400_quantum_100t">⚛️ v400.0 100-Trillion Dim Quantum-Phase VSA Symbol Binder</option>
+          <option value="v400_liquid_jepa">🌀 v400.0 Neuromorphic Liquid Active-JEPA World Model</option>
+          <option value="v300_supreme_apex">👑 v300.0 Singularity Supreme Apex Master Suite</option>
+          <option value="v300_chebyshev_kan">🌌 v300.0 Chebyshev & Legendre KAN-MoE Latent Engine</option>
+          <option value="v300_lorentz_vsa">⚛️ v300.0 100-Trillion Dim Lorentz Hyperbolic VSA Binder</option>
+          <option value="v300_titans_v5">🧠 v300.0 Titans-v5 Dual-Memory Infinite TTT Mind (100M+ Memory)</option>
+          <option value="v300_flow_mcts">🎯 v300.0 Continuous Flow Matching Diff-Tree MCTS Reasoner</option>
+          <option value="v300_subbit_001b">⚡ v300.0 0.01-Bit Sub-Bit Ternary Sinkhorn MoD Router</option>
+          <option value="v300_tda_homology">📐 v300.0 Persistent TDA Homology Manifold Verifier</option>
+          <option value="v300_rlvr_v7">🐝 v300.0 RLVR + GRPO-v7 Swarm Debate Policy Optimizer</option>
+          <option value="v300_liquid_jepa">🌀 v300.0 Neuromorphic Liquid Active-JEPA World Model</option>
+          <option value="v200_omnipresent">🌌 v200.0 Singularity Omnipresent Apex Master Suite</option>
+          <option value="v200_cfm_diff_tree">🌊 v200.0 CFM Stochastic Flow Diffusion-Tree MCTS</option>
+          <option value="v200_titans_v4">🧠 v200.0 Titans-v4 Ultra-Gated Delta TTT (10M+ Memory)</option>
+          <option value="v200_subbit_01b">⚡ v200.0 0.1-Bit Sub-Bit & Sinkhorn MoD Router</option>
+          <option value="v200_rlvr_v6">🐝 v200.0 RLVR + GRPO-v6 Swarm Debate Optimizer</option>
+          <option value="v200_poincare_tda">📐 v200.0 Poincaré Persistent TDA & Morlet-Wavelet KAN MLA</option>
+          <option value="v200_liquid_jepa">🌀 v200.0 Neuromorphic Liquid ODE Active Inference JEPA</option>
+          <option value="v200_quantum_10t">⚛️ v200.0 10-Trillion Dim Quantum-Phase VSA Symbol Binder</option>
+          <option value="v150_hyper_omni">👑 v150.0 Singularity Apex Hyper-Omni Master Suite</option>
+          <option value="v150_diff_flow">🎯 v150.0 Continuous Flow Matching Diff-Force MCTS</option>
+          <option value="v150_titans_v3">🧠 v150.0 Titans-v3 Gated-Delta TTT Surprise Memory</option>
+          <option value="v150_subbit">🔀 v150.0 0.58-Bit Sub-Bit MoD Sinkhorn Router</option>
+          <option value="v150_rlvr_v5">⚖️ v150.0 RLVR Verifiable Rewards + GRPO-v5 Swarm</option>
+          <option value="v150_poincare_kan">🌊 v150.0 Poincaré Riemannian TDA + Wavelet-KAN MLA</option>
+          <option value="v150_liquid_jepa">⚡ v150.0 Neuromorphic Liquid ODE Active Inference JEPA</option>
+          <option value="v150_quantum_1t">⚛️ v150.0 1-Trillion Dim Quantum-Phase VSA Binder</option>
+          <option value="v100_transcendence">🌌 v100.0 Singularity Transcendence Master Suite</option>
+          <option value="v100_ttt">🧠 v100.0 Test-Time Training (TTT) Recurrent Memory</option>
+          <option value="v100_flow">🎯 v100.0 Continuous Flow Matching Trajectory (CTFM-ToT)</option>
+          <option value="v100_rlvr">⚖️ v100.0 RLVR + GRPO-v4 Relative Group Advantage</option>
+          <option value="v100_tda">🔍 v100.0 Poincaré Hyperbolic TDA Homology Verifier</option>
+          <option value="v100_kan_mla">🌊 v100.0 Wavelet-KAN + DeepSeek-V3 Latent Attention</option>
+          <option value="v100_subbit">🔀 v100.0 1.58-Bit Sub-Bit MoD Sinkhorn Router</option>
+          <option value="v95_omniverse">🌌 v95.0 Singularity Omniverse Supreme Suite</option>
+          <option value="v95_ctfm_tot">🎯 v95.0 Continuous-Time Flow Matching ToT</option>
+          <option value="v95_tda_homology">🔍 v95.0 Topological TDA Persistent Homology</option>
+          <option value="v95_mamba2_ssd">⚡ v95.0 Mamba-2 SSD Matrix Associative Scan</option>
+          <option value="v95_wavelet_kan">🌊 v95.0 Wavelet-KAN Morlet Activation Core</option>
+          <option value="v95_deepseek_mla">🚀 v95.0 DeepSeek-V3 Multi-Head Latent Attention</option>
+          <option value="v95_titans2_ttt">🧠 v95.0 Titans-v2 Infinite TTT Meta-Surprise</option>
+          <option value="v85_nexus">🌌 v85.0 Singularity Nexus Supreme Suite</option>
+          <option value="v85_diff_tot">🎯 v85.0 Self-Reflective Diffusion ToT & PRM</option>
+          <option value="v85_mod_moe">🔀 v85.0 Mixture-of-Depths & MoE Sinkhorn Router</option>
+          <option value="v85_titans_ttt">🧠 v85.0 Titans Infinite TTT Surprise Memory</option>
+          <option value="v85_poincare_vsa">⚛️ v85.0 68B+ Poincaré Hyperbolic VSA</option>
+          <option value="v85_liquid_snn">⚡ v85.0 Neuromorphic Liquid SNN ODE</option>
+          <option value="v75_zenith">🌟 v75.0 Singularity Zenith Supreme Suite</option>
+          <option value="v70_apex">🚀 v70.0 Singularity Apex Supreme Suite</option>
+          <option value="prm_mcts">🌲 Real LLM PRM-MCTS Tree Search</option>
+          <option value="grpo_v3">🧮 Real LLM GRPO-v3 Advantage</option>
+          <option value="titans">🧠 Titans Persistent Vector Memory</option>
+          <option value="python_core">🐍 Python PyTorch Tensor Core</option>
+        </select>
+
+        <button id="clearChatBtn" class="action-icon-btn" title="Clear Chat History">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+
+        <div id="hiveQueueWidget" class="status-badge" style="display:none;" title="Swarm queue size">
+          <span id="hiveQueueText">Queue: 0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Central Levitating Rotating Glowing Orb -->
+    <section class="hero-orb-section">
+      <div class="orb-wrapper">
+        <canvas id="glowingOrbCanvas"></canvas>
+      </div>
+      <div class="orb-status-text">
+        <i class="fas fa-shield-alt" style="color: #00f0ff;"></i> <span id="orbStateLabel">OMNIBUS Neural Interface · v150.0 Singularity Apex Hyper-Omni Ready</span>
+      </div>
+    </section>
+
+    <!-- Main Chat Interface Area -->
+    <main class="chat-main-area">
+      <div class="chat-messages-stream" id="chatMessagesStream">
+        
+        <!-- Welcome Message from Assistant -->
+        <div class="message-card assistant">
+          <div class="avatar assistant"><i class="fas fa-robot"></i></div>
+          <div class="message-bubble">
+            <div style="font-weight: 800; color: #00f0ff; margin-bottom: 4px;">OMNIBUS v150.0 Singularity Apex Hyper-Omni Assistant</div>
+            Welcome! I am OMNIBUS v150.0, powered by state-of-the-art Machine Learning hyper-architectures: **Continuous Flow-Matching Diff-Force MCTS**, **Titans-v3 Gated-Delta TTT Memory**, **0.58-Bit Sub-Bit MoD Sinkhorn Router**, **RLVR Verifiable Rewards + GRPO-v5 Swarm**, **Poincaré Riemannian TDA + Wavelet-KAN MLA**, **Neuromorphic Liquid ODE Active Inference JEPA**, and **1-Trillion Dim Quantum-Phase VSA**.
+            <br><br>
+            Select a frontier ML engine or click a quick synthesis pill:
+            
+            <div class="suggestions-container">
+              <div class="suggestion-pill" onclick="sendQuickPrompt('Execute v150.0 Singularity Apex Hyper-Omni Master ML Suite Synthesis')">
+                <i class="fas fa-crown"></i> v150.0 Hyper-Omni Master Suite
+              </div>
+              <div class="suggestion-pill" onclick="sendQuickPrompt('Run Continuous Flow Matching Diff-Force MCTS continuous integration & PRM rollout')">
+                <i class="fas fa-compass"></i> Continuous Flow Diff-Force MCTS
+              </div>
+              <div class="suggestion-pill" onclick="sendQuickPrompt('Update Titans-v3 Gated-Delta TTT associative surprise memory matrix')">
+                <i class="fas fa-brain"></i> Titans-v3 Gated-Delta TTT Memory
+              </div>
+              <div class="suggestion-pill" onclick="sendQuickPrompt('Route 0.58-bit sub-bit ternary BitNet tokens via Sinkhorn optimal transport')">
+                <i class="fas fa-random"></i> 0.58-Bit Sub-Bit MoD Router
+              </div>
+              <div class="suggestion-pill" onclick="sendQuickPrompt('Evaluate RLVR verifiable reward feedback + GRPO-v5 swarm debate optimization')">
+                <i class="fas fa-balance-scale"></i> RLVR + GRPO-v5 Swarm Debate
+              </div>
+              <div class="suggestion-pill" onclick="sendQuickPrompt('Compute Poincaré Riemannian geodesics, Betti numbers & Wavelet-KAN MLA')">
+                <i class="fas fa-draw-polygon"></i> Poincaré TDA + Wavelet-KAN MLA
+              </div>
+              <div class="suggestion-pill" onclick="sendQuickPrompt('Simulate neuromorphic liquid ODE spiking dynamics & active inference JEPA')">
+                <i class="fas fa-bolt"></i> Liquid SNN Active Inference JEPA
+              </div>
+              <div class="suggestion-pill" onclick="sendQuickPrompt('Bind symbolic pairs in 1-Trillion dimensional quantum-phase VSA space')">
+                <i class="fas fa-atom"></i> 1-Trillion Dim Quantum VSA
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Chat Dock -->
+      <footer class="chat-input-dock">
+        <div class="input-textarea-wrapper">
+          <textarea id="chatInputField" rows="1" placeholder="Type a message or instruction for OMNIBUS..."></textarea>
+        </div>
+        <button id="chatSendBtn" class="send-btn" title="Send Message">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </footer>
+    </main>
+
+  </div>
+
+  <!-- Interactive ML Brainstorming & Frontier Lab Modal -->
+  <div id="mlBrainstormModal" class="ml-modal-overlay">
+    <div class="ml-modal-content">
+      <button id="closeMlBrainstormModalBtn" class="ml-modal-close-btn"><i class="fas fa-times"></i></button>
+
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <i class="fas fa-atom" style="font-size: 2.2rem; color: #00f0ff; filter: drop-shadow(0 0 15px #00f0ff);"></i>
+        <div>
+          <h2 style="margin: 0; font-size: 1.5rem; color: #ffffff; font-weight: 900; background: linear-gradient(135deg, #00f0ff, #ff00ea); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            OMNIBUS v100000.0 ML Frontier & Architecture Innovation Lab
+          </h2>
+          <div style="color: var(--text-muted); font-size: 0.88rem; margin-top: 2px;">
+            Interactive Architecture Synthesis, Topology Visualization & Theoretical Benchmark Prototyper
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-Time Architectural Graph Topology Canvas -->
+      <div style="background: rgba(4, 8, 18, 0.9); border: 1px solid rgba(0, 240, 255, 0.25); border-radius: 14px; padding: 16px; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div style="font-weight: 700; color: #00f0ff; font-size: 0.92rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-project-diagram"></i> Live Neural Manifold & Flow Topology Graph
+          </div>
+          <div style="font-size: 0.78rem; color: #00ff88; font-family: 'JetBrains Mono', monospace;">
+            S12 Symplectic-Kähler Foliation Topology Active
+          </div>
+        </div>
+        <canvas id="mlTopologyCanvas" width="1020" height="220" style="width: 100%; height: 220px; border-radius: 10px; background: #03050c; display: block;"></canvas>
+      </div>
+
+      <!-- Multi-Component Brainstorming Selectors -->
+      <div>
+        <div style="font-weight: 800; color: #ffd700; font-size: 1.05rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-sliders-h"></i> Select Cutting-Edge ML Modules for Brainstormed Architecture:
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px;">
+          <label style="background: rgba(16, 22, 44, 0.8); border: 1px solid rgba(0, 240, 255, 0.3); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modS12" checked style="accent-color: #00f0ff; width: 18px; height: 18px;">
+            <div>
+              <div style="color: #00f0ff; font-weight: 700; font-size: 0.88rem;">S12 Symplectic-Kähler Foliation SSM</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">12D Riemannian phase-space volume preservation</div>
+            </div>
+          </label>
+
+          <label style="background: rgba(16, 22, 44, 0.8); border: 1px solid rgba(255, 0, 234, 0.3); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modTitans1000" checked style="accent-color: #ff00ea; width: 18px; height: 18px;">
+            <div>
+              <div style="color: #ff00ea; font-weight: 700; font-size: 0.88rem;">Titans-v1000 Fast-Weight TTT Mind</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">10^1000 token surprise hypergradient memory</div>
+            </div>
+          </label>
+
+          <label style="background: rgba(16, 22, 44, 0.8); border: 1px solid rgba(0, 255, 136, 0.3); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modSubBit" checked style="accent-color: #00ff88; width: 18px; height: 18px;">
+            <div>
+              <div style="color: #00ff88; font-weight: 700; font-size: 0.88rem;">Sub-Bit 0.000000000001b Sinkhorn Router</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">100,000x Entropic fractional MoD-MoE quantization</div>
+            </div>
+          </label>
+
+          <label style="background: rgba(16, 22, 44, 0.8); border: 1px solid rgba(255, 215, 0, 0.3); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modCFM" checked style="accent-color: #ffd700; width: 18px; height: 18px;">
+            <div>
+              <div style="color: #ffd700; font-weight: 700; font-size: 0.88rem;">CFM Continuous Diff-Tree MCTS</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">Kinetic SDE Riemannian continuous reasoning</div>
+            </div>
+          </label>
+
+          <label style="background: rgba(16, 22, 44, 0.8); border: 1px solid rgba(0, 240, 255, 0.3); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modSwarmRLVR" checked style="accent-color: #00f0ff; width: 18px; height: 18px;">
+            <div>
+              <div style="color: #00f0ff; font-weight: 700; font-size: 0.88rem;">Swarm RLVR + GRPO Theorem Prover</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">99.99999999999% Lean4, Coq, Isabelle, Agda, Z3</div>
+            </div>
+          </label>
+
+          <label style="background: rgba(16, 22, 44, 0.8); border: 1px solid rgba(255, 0, 234, 0.3); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modTDABetti" checked style="accent-color: #ff00ea; width: 18px; height: 18px;">
+            <div>
+              <div style="color: #ff00ea; font-weight: 700; font-size: 0.88rem;">Vietoris-Rips TDA Betti Guard</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">0.000000000 Bottleneck distance zero hallucination</div>
+            </div>
+          </label>
+
+          <label style="background: rgba(16, 22, 44, 0.8); border: 1px solid rgba(0, 255, 136, 0.3); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modQuantumVSA" checked style="accent-color: #00ff88; width: 18px; height: 18px;">
+            <div>
+              <div style="color: #00ff88; font-weight: 700; font-size: 0.88rem;">1-QuettaByte Quantum Phase VSA</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">10^30 dimensional circular phase vector binding</div>
+            </div>
+          </label>
+
+          <label style="background: rgba(16, 22, 44, 0.8); border: 1px solid rgba(255, 215, 0, 0.3); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="modWaveletMLA" checked style="accent-color: #ffd700; width: 18px; height: 18px;">
+            <div>
+              <div style="color: #ffd700; font-weight: 700; font-size: 0.88rem;">Wavelet-KAN + DeepSeek-v3 MLA</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">Morlet spline basis + 10,000x KV-cache reduction</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 14px; align-items: center; margin-top: 10px;">
+        <button id="runBrainstormSynthesisBtn" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #00f0ff, #ff00ea); border: none; border-radius: 12px; color: #060810; font-weight: 800; font-size: 1rem; cursor: pointer; box-shadow: 0 0 25px rgba(0, 240, 255, 0.5); display: flex; align-items: center; justify-content: center; gap: 10px;">
+          <i class="fas fa-bolt"></i> Synthesize & Benchmark Brainstormed Architecture
+        </button>
+        <button id="injectBrainstormToChatBtn" style="padding: 14px 20px; background: rgba(0, 255, 136, 0.15); border: 1px solid #00ff88; border-radius: 12px; color: #00ff88; font-weight: 700; font-size: 0.92rem; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-paper-plane"></i> Send to Chat Dock
+        </button>
+      </div>
+
+      <!-- Synthesis Results Output Box -->
+      <div id="mlBrainstormResults" style="display: none; background: #03050c; border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 14px; padding: 18px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #00ff88; max-height: 250px; overflow-y: auto; white-space: pre-wrap;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="orb_renderer.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // Initialize Floating Rotating Glowing Orb
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.GlowingOrbVisualizer) {
+        window.orbVisualizer = new window.GlowingOrbVisualizer('glowingOrbCanvas');
+      }
+    });
+
+    function sendQuickPrompt(text) {
+      const input = document.getElementById('chatInputField');
+      if (input) {
+        input.value = text;
+        document.getElementById('chatSendBtn').click();
+      }
+    }
+  </script>
+</body>
+</html>
