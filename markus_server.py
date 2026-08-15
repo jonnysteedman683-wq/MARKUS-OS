@@ -33,6 +33,7 @@ from markus_speculative_cache import MarkusSpeculativeCache
 from markus_prompt_matrix import MarkusPromptSynthesisMatrix
 from markus_capabilities import CapabilityRegistry
 from markus_capability_synthesizer import MarkusCapabilitySynthesizer
+from markus_thors import ThorsEngine, create_thors_tables
 
 logger = logging.getLogger("Markus.Server")
 

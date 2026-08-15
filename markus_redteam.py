@@ -393,6 +393,7 @@ class RedTeamOrchestrator:
         self,
         target_dirs: Optional[List[str]] = None,
         mutations_per_file: int = 3,
+        max_files: int = 10,
     ) -> Dict[str, Any]:
         """
         Run one full Red Team cycle:
@@ -402,6 +403,11 @@ class RedTeamOrchestrator:
         4. BLUE: Generate and apply fixes
         5. VALIDATION: Run PHOENIX CLI batch scan
         6. Log results to cortex
+        
+        Args:
+            target_dirs: Directories to scan (defaults to repo root)
+            mutations_per_file: Number of mutations to try per file
+            max_files: Maximum number of files to test (for epoch speed)
         """
         cycle_start = time.perf_counter()
         self._cycle_count += 1
@@ -423,7 +429,7 @@ class RedTeamOrchestrator:
         all_vulnerabilities = []
 
         # Test a subset for speed
-        test_files = target_files[:10] if len(target_files) > 10 else target_files
+        test_files = target_files[:max_files] if len(target_files) > max_files else target_files
 
         for i, file_path in enumerate(test_files):
             results = await self.red_agent.test_file(file_path, mutations_per_file=mutations_per_file)
