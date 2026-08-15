@@ -50,7 +50,7 @@ from markus_kernel import MarkusKernel
 
 logger = logging.getLogger("Markus.CoEvolution")
 
-REPO_ROOT = Path(__file__).resolve().parent
+REPO_ROOT = Path(os.path.dirname(os.path.abspath(__file__)))
 SKILLS_DIR = Path(os.environ.get("HERMES_SKILLS_DIR", ""))
 
 
