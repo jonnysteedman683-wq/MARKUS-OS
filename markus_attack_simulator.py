@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from markus_db import PersistentCortexDB
 from markus_thors import ThorsEngine, AttackVerdict, ThorClass
 
-REPO_ROOT = Path(__file__).parent.resolve()
+REPO_ROOT = Path(__file__.parent.resolve()) if "__file__" in dir() else Path.cwd()
 logger = logging.getLogger("Markus.AttackSim")
 
 
