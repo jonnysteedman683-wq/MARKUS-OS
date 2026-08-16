@@ -336,10 +336,18 @@ class ThorsEngine:
             profile = self._get_or_create_profile(client_ip)
             # Escalate based on profile, not hardcoded DRAGON_RAGE
             block_remaining = profile.block_expires - time.time()
+            # Note: profile.attack_count reflects PRIOR attacks; retaliate()
+            # will increment it after this analysis. So we use >= 4 for ENDER
+            # (will become 5 after retaliate) and >= 9 for DRAGON_RAGE (→10).
             if profile.attack_count >= 10:
                 thor_class = ThorClass.DRAGON_RAGE
                 threat_level = 5
-            elif profile.attack_count >= 5:
+            elif profile.attack_count >= 9:
+                # Escalating to DRAGON_RAGE threshold
+                thor_class = ThorClass.DRAGON_RAGE
+                threat_level = 5
+            elif profile.attack_count >= 4:
+                # Will become 5 after retaliate → ENDER_PEARL threshold
                 thor_class = ThorClass.ENDER_PEARL
                 threat_level = 4
             elif profile.last_thor == ThorClass.DRAGON_RAGE:
@@ -350,7 +358,7 @@ class ThorsEngine:
                 threat_level = profile.last_thor.value
             else:
                 thor_class = profile.last_thor or ThorClass.LIGHTNING
-                threat_level = thor_class.value
+                threat_level = max(thor_class.value, 1)
             return AttackVerdict(
                 threat_level=threat_level,
                 attack_type=None,

@@ -128,7 +128,9 @@ class AttackSuiteRunner:
         "rate_abuse": 1,
         "sql_injection": 3,
         "path_traversal": 3,
-        "forbidden_call": 5,
+        # forbidden_call: eval(1) matches forbidden_call + payload_obfuscation = L3
+        # But eval(__import__('os').system(...)) matches multiple patterns = L5
+        "forbidden_call": 3,
         "auth_bypass_attempt": 3,
         "payload_obfuscation": 3,
         "token_dumping": 2,
