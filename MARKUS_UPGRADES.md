@@ -59,7 +59,7 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 | **#4 Isolated Process Sandbox** (`markus_sandbox.py`) | **High (10/10)** | **Critical (9.5/10)** | Medium (Async subprocess) | **Complete & Verified** |
 | **#5 Multi-Model Intent Router** (`markus_router.py`) | **High (10/10)** | **High (8.5/10)** | Low (Heuristic Regex Triage) | **Complete & Verified** |
 | **#6 Bidirectional Kanban Worker** (`markus_kanban_worker.py`) | **High (10/10)** | **Critical (9/10)** | Medium (SQLite claim locks) | **Complete & Verified** |
-| **#7 Obsidian Palace Sync** (`markus_obsidian_sync.py`) | **High (10/10)** | **High (8/10)** | Low (Vault markdown writer) | **Next Queue** |
+|| **#7 Obsidian Palace Sync** (`markus_obsidian_sync.py`) | **High (10/10)** | **High (8/10)** | Low (Vault markdown writer) | **Complete & Verified** |
 | **#8 Harmonic Web Audio Synth** (`markus-os.html`) | **High (10/10)** | **Medium (7/10)** | Low (Browser Web Audio API) | **Next Queue** |
 | **#9 Self-Healing Circuit Breaker** (`markus_resilience.py`) | **High (9/10)** | **Critical (9.5/10)** | Medium (Stateful backoff) | **Queued** |
 | **#10 Swarm Mesh UDP Discovery** (`markus_mesh.py`) | **Medium (7.5/10)** | **High (8.5/10)** | High (Cross-subnet UDP/LAN) | **Queued** |
