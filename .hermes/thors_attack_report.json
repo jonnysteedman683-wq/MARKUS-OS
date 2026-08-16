@@ -1,10 +1,10 @@
 {
-  "timestamp": 1786865957.9101622,
+  "timestamp": 1786866087.3201697,
   "engine": "markus_thors",
   "total_attacks": 22,
   "results": [
     {
-      "attack_id": "ATK-1786865957-0001",
+      "attack_id": "ATK-1786866087-0001",
       "attack_type": "mass_endpoint_probe",
       "payload_description": "GET /wp-admin ",
       "detected": true,
@@ -17,11 +17,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 1.31,
+      "latency_ms": 1.71,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0002",
+      "attack_id": "ATK-1786866087-0002",
       "attack_type": "mass_endpoint_probe",
       "payload_description": "GET /.env ",
       "detected": true,
@@ -34,11 +34,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.84,
+      "latency_ms": 1.03,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0003",
+      "attack_id": "ATK-1786866087-0003",
       "attack_type": "mass_endpoint_probe",
       "payload_description": "GET /admin ",
       "detected": true,
@@ -51,11 +51,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.7,
+      "latency_ms": 0.81,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0004",
+      "attack_id": "ATK-1786866087-0004",
       "attack_type": "rate_abuse",
       "payload_description": "POST /api/chat ping",
       "detected": true,
@@ -68,11 +68,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.86,
+      "latency_ms": 0.98,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0005",
+      "attack_id": "ATK-1786866087-0005",
       "attack_type": "rate_abuse",
       "payload_description": "POST /api/chat ping",
       "detected": true,
@@ -87,11 +87,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.95,
+      "latency_ms": 0.96,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0006",
+      "attack_id": "ATK-1786866087-0006",
       "attack_type": "sql_injection",
       "payload_description": "POST /api/intent ' OR '1'='1",
       "detected": true,
@@ -106,11 +106,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 1.1,
+      "latency_ms": 1.02,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0007",
+      "attack_id": "ATK-1786866087-0007",
       "attack_type": "path_traversal",
       "payload_description": "GET /../../../etc/passwd ",
       "detected": true,
@@ -125,11 +125,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.85,
+      "latency_ms": 0.87,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0008",
+      "attack_id": "ATK-1786866087-0008",
       "attack_type": "forbidden_call",
       "payload_description": "POST /api/sandbox/eval eval(1)",
       "detected": true,
@@ -144,11 +144,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.94,
+      "latency_ms": 0.88,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0009",
+      "attack_id": "ATK-1786866087-0009",
       "attack_type": "auth_bypass_attempt",
       "payload_description": "POST /api/intent admin'--",
       "detected": true,
@@ -163,11 +163,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.93,
+      "latency_ms": 0.82,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0010",
+      "attack_id": "ATK-1786866087-0010",
       "attack_type": "forbidden_call",
       "payload_description": "POST /api/sandbox/eval eval(__import__('os').system('rm -rf /'))",
       "detected": true,
@@ -184,11 +184,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 1.18,
+      "latency_ms": 1.07,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0011",
+      "attack_id": "ATK-1786866087-0011",
       "attack_type": "token_dumping",
       "payload_description": "POST /api/intent sk-1234567890abcdefghijklmnopqrstuvwxyz",
       "detected": true,
@@ -205,11 +205,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 1.64,
+      "latency_ms": 1.23,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0012",
+      "attack_id": "ATK-1786866087-0012",
       "attack_type": "payload_obfuscation",
       "payload_description": "POST /api/intent eval(compile('x' + 'y', '<s>', 'exec'))",
       "detected": true,
@@ -226,11 +226,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.63,
+      "latency_ms": 0.51,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0013",
+      "attack_id": "ATK-1786866087-0013",
       "attack_type": "sql_injection",
       "payload_description": "POST /api/intent 1' UNION SELECT username, password FROM users--",
       "detected": true,
@@ -245,13 +245,32 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.67,
+      "latency_ms": 1.42,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0014",
+      "attack_id": "ATK-1786866087-0014",
       "attack_type": "path_traversal",
       "payload_description": "GET /proc/self/environ ",
+      "detected": true,
+      "threat_level": 3,
+      "thor_class": "STONE_GOLEM",
+      "confidence": 0.9,
+      "retaliation_actions": [
+        "ip_block",
+        "session_terminate",
+        "fingerprint_capture",
+        "user_agent_ban",
+        "log_attacker"
+      ],
+      "attacker_profile_updated": true,
+      "latency_ms": 0.48,
+      "passed": true
+    },
+    {
+      "attack_id": "ATK-1786866087-0015",
+      "attack_type": "token_dumping",
+      "payload_description": "POST /api/chat ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD",
       "detected": true,
       "threat_level": 3,
       "thor_class": "STONE_GOLEM",
@@ -268,26 +287,7 @@
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0015",
-      "attack_type": "token_dumping",
-      "payload_description": "POST /api/chat ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD",
-      "detected": true,
-      "threat_level": 3,
-      "thor_class": "STONE_GOLEM",
-      "confidence": 0.9,
-      "retaliation_actions": [
-        "ip_block",
-        "session_terminate",
-        "fingerprint_capture",
-        "user_agent_ban",
-        "log_attacker"
-      ],
-      "attacker_profile_updated": true,
-      "latency_ms": 0.46,
-      "passed": true
-    },
-    {
-      "attack_id": "ATK-1786865957-0016",
+      "attack_id": "ATK-1786866087-0016",
       "attack_type": "sql_injection",
       "payload_description": "POST /api/intent '; DROP TABLE users; --",
       "detected": true,
@@ -302,11 +302,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 1.39,
+      "latency_ms": 0.65,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0017",
+      "attack_id": "ATK-1786866087-0017",
       "attack_type": "auth_bypass_attempt",
       "payload_description": "POST /api/intent ' OR 1=1 --",
       "detected": true,
@@ -321,11 +321,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.81,
+      "latency_ms": 0.43,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0018",
+      "attack_id": "ATK-1786866087-0018",
       "attack_type": "mass_endpoint_probe",
       "payload_description": "GET /admin ",
       "detected": true,
@@ -338,11 +338,11 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.92,
+      "latency_ms": 0.69,
       "passed": true
     },
     {
-      "attack_id": "ATK-1786865957-0019",
+      "attack_id": "ATK-1786866087-0019",
       "attack_type": "sql_injection",
       "payload_description": "POST /api/intent ' OR 1=1--",
       "detected": true,
@@ -355,30 +355,13 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 1.2,
+      "latency_ms": 0.45,
       "passed": false
     },
     {
-      "attack_id": "ATK-1786865957-0020",
+      "attack_id": "ATK-1786866087-0020",
       "attack_type": "forbidden_call",
       "payload_description": "POST /api/sandbox/eval eval(1)",
-      "detected": true,
-      "threat_level": 1,
-      "thor_class": "LIGHTNING",
-      "confidence": 0.9,
-      "retaliation_actions": [
-        "ip_block",
-        "delayed_response_5s",
-        "log_attacker"
-      ],
-      "attacker_profile_updated": true,
-      "latency_ms": 0.47,
-      "passed": false
-    },
-    {
-      "attack_id": "ATK-1786865957-0021",
-      "attack_type": "token_dumping",
-      "payload_description": "POST /api/chat sk-test1234567890abcdef",
       "detected": true,
       "threat_level": 1,
       "thor_class": "LIGHTNING",
@@ -393,7 +376,24 @@
       "passed": false
     },
     {
-      "attack_id": "ATK-1786865957-0022",
+      "attack_id": "ATK-1786866087-0021",
+      "attack_type": "token_dumping",
+      "payload_description": "POST /api/chat sk-test1234567890abcdef",
+      "detected": true,
+      "threat_level": 1,
+      "thor_class": "LIGHTNING",
+      "confidence": 0.9,
+      "retaliation_actions": [
+        "ip_block",
+        "delayed_response_5s",
+        "log_attacker"
+      ],
+      "attacker_profile_updated": true,
+      "latency_ms": 0.44,
+      "passed": false
+    },
+    {
+      "attack_id": "ATK-1786866087-0022",
       "attack_type": "path_traversal",
       "payload_description": "GET /../../../etc/passwd ",
       "detected": true,
@@ -408,7 +408,7 @@
         "log_attacker"
       ],
       "attacker_profile_updated": true,
-      "latency_ms": 0.41,
+      "latency_ms": 0.49,
       "passed": true
     }
   ]
