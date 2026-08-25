@@ -46,7 +46,11 @@ class MarkusMeshLayer:
         self.capabilities = capabilities or []
         self.port = port
         self.nodes: Dict[str, MeshNode] = {}
-        self._lock = threading.Lock()
+        # RLock: _evict_dead_nodes() guards internally and is called both from
+        # the broadcaster thread (no lock held) and the listener thread (lock
+        # already held) — re-entrant lock prevents a deadlock while eliminating
+        # the concurrent peer-dict mutation race.
+        self._lock = threading.RLock()
         self._running = False
         self._listener_thread: Optional[threading.Thread] = None
         self._broadcaster_thread: Optional[threading.Thread] = None
@@ -128,11 +132,15 @@ class MarkusMeshLayer:
                     time.sleep(1.0)
 
     def _evict_dead_nodes(self) -> None:
-        now = time.time()
-        expired = [nid for nid, n in self.nodes.items() if (now - n.last_seen) > MESH_NODE_TIMEOUT]
-        for nid in expired:
-            logger.info(f"Evicted stale peer: {nid}")
-            del self.nodes[nid]
+        # Guard internally: callers span multiple threads and may already hold
+        # _lock (listener) or not (broadcaster, discover_peers). RLock is
+        # re-entrant, so all three call sites serialize safely.
+        with self._lock:
+            now = time.time()
+            expired = [nid for nid, n in self.nodes.items() if (now - n.last_seen) > MESH_NODE_TIMEOUT]
+            for nid in expired:
+                logger.info(f"Evicted stale peer: {nid}")
+                del self.nodes[nid]
 
     def start(self) -> None:
         if self._running:
