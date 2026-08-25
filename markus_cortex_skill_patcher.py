@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 logger = logging.getLogger("Markus.CortexSkillPatcher")
 
 # Path to Hermes profile skills
-HERMES_SKILLS_ROOT = Path.home() / "AppData" / "Local" / "hermes" / "profiles" / "auroral-" / "skills" / "software-development"
+HERMES_SKILLS_ROOT = Path.home() / "AppData" / "Local" / "hermes" / "skills"
 
 # Pattern templates: (regex, skill_name, action, patch_template)
 SKILL_UPGRADE_PATTERNS: List[Tuple[str, str, str]] = [
@@ -37,7 +37,7 @@ SKILL_UPGRADE_PATTERNS: List[Tuple[str, str, str]] = [
     # Accessibility fixes
     (
         r"(font-size.*rem|accessibility|font.*rem)",
-        "frontend-backend-telemetry-and-cleanup",
+        "markus-os-development",
         "MICRO-APPEND",
         "Accessibility fix applied: {content}"
     ),
@@ -123,7 +123,7 @@ class CortexSkillPatcher:
         """Locate the SKILL.md file for a given skill name."""
         # Search recursively for the skill directory
         for skill_dir in self.skills_root.rglob(skill_name):
-            if skill_dir.is_dir():
+            if skill_dir.is_dir() and ".archive" not in skill_dir.parts:
                 skill_file = skill_dir / "SKILL.md"
                 if skill_file.exists():
                     return skill_file
