@@ -37,6 +37,24 @@ from markus_thors import ThorsEngine, create_thors_tables
 
 logger = logging.getLogger("Markus.Server")
 
+def _ask_markus_brain(prompt: str, timeout_s: float = 120.0) -> str:
+    """Shell out to the markus Hermes profile (DeepSeek via Nous) for a real answer."""
+    import subprocess, os, shutil, re
+    env = dict(os.environ)
+    env["HERMES_HOME"] = "C:/Users/jonny/AppData/Local/hermes/profiles/markus"
+    exe = shutil.which("hermes") or "hermes"
+    cmd = [exe, "chat", "-q", f"MARKUS user intent: {prompt}. Reply directly and concisely.", "-p", "markus"]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s, env=env, encoding="utf-8", errors="replace")
+        out = (proc.stdout or "") + (proc.stderr or "")
+        ansi = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+        skip = ("query:", "warning:", "initializing", "reasoning", "resume", "session:", "title:", "duration:", "messages:", "  hermes", "  markus", "◆", "─", "━", "markus user intent", "hermes --resume", "hermes -c")
+        candidates = [ansi.sub("", l).strip() for l in out.splitlines()]
+        candidates = [l for l in candidates if l and not l.lower().startswith(skip) and "MARKUS user intent" not in l and any(c.isalpha() for c in l)]
+        return candidates[-1] if candidates else f"(no reply from markus profile) rc={proc.returncode}"
+    except Exception as exc:
+        return f"(markus brain error: {exc})"
+
 # Global instances
 kernel = MarkusKernel()
 bridge = MarkusHermesBridge(kernel)
@@ -349,7 +367,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
 
                 # Route intent and build response
                 routed = router.route_intent(prompt)
-                response_text = f"Dispatched intent to {routed.model_provider} [{routed.tier_category}]. Logged to L3 cortex."
+                response_text = _ask_markus_brain(prompt)
 
                 # Broadcast real-time SSE event to all connected UI surfaces
                 broadcast_sse_event("intent", {
@@ -363,10 +381,10 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                     "prompt": prompt,
                     "kernel_response": response_text,
                     "routing_decision": {
-                        "model": routed.model_provider,
+                        "model": routed.target_model,
                         "tier": routed.tier_category,
-                        "confidence": routed.confidence_score,
-                        "reason": routed.reasoning
+                        "confidence": routed.confidence,
+                        "reason": routed.reason
                     }
                 }
                 self._set_headers(200)

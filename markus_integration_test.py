@@ -7,6 +7,7 @@ Runs kernel, DB, server, router, sandbox, mesh, and Obsidian sync in a single pa
 from __future__ import annotations
 import asyncio
 import json
+import socket
 import os
 import subprocess
 import sys
@@ -146,7 +147,7 @@ async def run_integration_test() -> int:
         mesh = MarkusMeshLayer(node_name="integration-test-node", api_endpoint="http://localhost:8128")
         payload_data = mesh._build_heartbeat()
         payload = json.loads(payload_data)
-        mesh_ok = payload["node_id"] == "integration-test-node-arkwindows"
+        mesh_ok = payload["node_id"] == f"integration-test-node-{socket.gethostname()}".lower()
         if report("Swarm Mesh UDP Discovery", mesh_ok, f"Port={MESH_BROADCAST_PORT}"):
             passed += 1
     except Exception as e:

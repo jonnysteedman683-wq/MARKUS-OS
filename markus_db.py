@@ -125,6 +125,12 @@ class PersistentCortexDB:
                 for r in rows
             ]
 
+    def cortex_execute(self, sql: str, params: tuple = ()) -> None:
+        """Execute a raw SQL statement against the Cortex DB (used by modules like Thors)."""
+        with self._get_connection() as conn:
+            conn.execute(sql, params)
+            conn.commit()
+
     def get_recent_thoughts(self, limit: int = 10) -> List[Dict[str, Any]]:
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -132,19 +138,20 @@ class PersistentCortexDB:
                 SELECT entry_id, agent, content, metadata_json, created_at
                 FROM thoughts
                 ORDER BY created_at DESC
-                LIMIT ?
-            """, (limit,))
-            rows = cursor.fetchall()
-            return [
-                {
-                    "entry_id": r["entry_id"],
-                    "agent": r["agent"],
-                    "content": r["content"],
-                    "metadata": json.loads(r["metadata_json"]),
-                    "created_at": r["created_at"]
-                }
-                for r in rows
-            ]
+                LIMIT ?""",
+            (limit,),
+        )
+        rows = cursor.fetchall()
+        return [
+            {
+                "entry_id": r["entry_id"],
+                "agent": r["agent"],
+                "content": r["content"],
+                "metadata": json.loads(r["metadata_json"]),
+                "created_at": r["created_at"],
+            }
+            for r in rows
+        ]
 
 if __name__ == "__main__":
     db = PersistentCortexDB()
