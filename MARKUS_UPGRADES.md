@@ -4,6 +4,19 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 
 ---
 
+## Dice Cycle Log
+
+### 2026-08-26 · Dice chain [6,6,3] → `UPGRADE_AI_AGENT` → Kanban Worker v1.1
+- **Outcome:** `markus_kanban_worker.py` modernized (real-body execution, schema sync, honest failure path).
+  - Executes the **real task body** in the sandbox (raw python or markdown-fenced) instead of a canned stub print.
+  - Syncs with the live kanban schema: `task_runs` records per attempt, `consecutive_failures`, `last_failure_error`, `max_retries`, `claim_lock`/`claim_expires`/`worker_pid`.
+  - **Atomic claim** (double-claim refused) + **stale-claim reaping** (`recover_stale_claims`) so crashed workers don't strand tasks in `in_progress`.
+  - **Honest outcomes:** SUCCESS only on exit 0; failures release for retry up to `max_retries`; non-code bodies report `NO_EXECUTABLE_PAYLOAD` instead of fake completion.
+- **Verification:** py_compile OK · self-test ALL GREEN (3 tasks: SUCCESS/FAILED/NO_EXECUTABLE_PAYLOAD, atomic claim, stale reap) · integration harness **9/9** · live router probe HTTP 200.
+- **Flagged (pre-existing, not in scope):** `_ask_markus_brain` hermes CLI bridge (`hermes chat -p markus`) times out at 120s.
+
+---
+
 ### 1. Dynamic Capability Driver Subsystem (`markus_capabilities.py`)
 - **Upgrade:** Create an extensible plugin interface (`MarkusCapability`) for dynamic runtime driver loading (file tools, network scanners, git tools).
 - **Impact:** Decouples core kernel logic from peripheral tool definitions, allowing hot-reloading of drivers without restarting the kernel.
