@@ -99,6 +99,17 @@
       font-size: 0.7em;
       border-radius: 8px;
     }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
     .input-area {
       display: flex;
       gap: 10px;
@@ -257,8 +268,11 @@
     </div>
 
     <div class="input-area">
-      <textarea id="inputBox" placeholder="Enter your intent for MARKUS OS (Ctrl+Enter to send)..." rows="2"></textarea>
-      <button id="sendBtn" class="send-btn">Send</button>
+      <label for="inputBox" class="visually-hidden">MARKUS intent input</label>
+      <textarea id="inputBox" placeholder="Enter your intent for MARKUS OS (Ctrl+Enter to send)..." rows="2"
+        aria-label="MARKUS intent input" aria-describedby="inputHint" role="textbox" aria-multiline="true"></textarea>
+      <span id="inputHint" class="visually-hidden">Press Enter to send, Shift+Enter for a new line</span>
+      <button id="sendBtn" class="send-btn" aria-label="Send intent to MARKUS">Send</button>
     </div>
 
     <div class="status-bar">
