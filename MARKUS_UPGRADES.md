@@ -39,6 +39,8 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
   **9/9** · server restarted on new code, `/api/vault/sync` → `{"status":"OK", "vault":"...VORPAL Vault"}`, live stream UP_TO_DATE.
 
 ---
+
+### 2026-08-26 · Dice chain [6,6,3] → `UPGRADE_AI_AGENT` → Kanban Worker v1.1
 - **Outcome:** `markus_kanban_worker.py` modernized (real-body execution, schema sync, honest failure path).
   - Executes the **real task body** in the sandbox (raw python or markdown-fenced) instead of a canned stub print.
   - Syncs with the live kanban schema: `task_runs` records per attempt, `consecutive_failures`, `last_failure_error`, `max_retries`, `claim_lock`/`claim_expires`/`worker_pid`.
