@@ -187,6 +187,18 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             }
             self._set_headers(200)
             self.wfile.write(json.dumps(res).encode("utf-8"))
+        elif self.path.startswith("/api/cortex/search"):
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
+            params = urllib.parse.parse_qs(parsed.query)
+            q = params.get("q", [""])[0].strip()
+            limit = int(params.get("limit", [20])[0])
+            if q:
+                results = kernel.memory.db.search_thoughts(q, limit=limit)
+            else:
+                results = kernel.memory.db.get_recent_thoughts(limit=limit)
+            self._set_headers(200)
+            self.wfile.write(json.dumps({"status": "OK", "query": q, "count": len(results), "results": results}).encode("utf-8"))
         elif self.path == "/api/stream":
             # Server-Sent Events (SSE) Stream
             self.send_response(200)
@@ -883,15 +895,17 @@ def run_server(port: int = 8128) -> None:
     print(f"[MARKUS-OS] Obsidian Palace Bridge -> {obsidian_sync.vault_path}")
 
     def _auto_vault_sync(interval_s: float = 300.0) -> None:
-        """Append new L3 thoughts to the VORPAL Vault journal periodically."""
+        """Append new L3 thoughts to the VORPAL Vault journal and generate Canvas graphs periodically."""
         try:
             obsidian_sync.append_new_thoughts()  # immediate catch-up on boot
+            obsidian_sync.generate_canvas_graph()
         except Exception as exc:
             logger.warning(f"Vault boot sync failed: {exc}")
         while True:
             time.sleep(interval_s)
             try:
                 obsidian_sync.append_new_thoughts()
+                obsidian_sync.generate_canvas_graph()
             except Exception as exc:
                 logger.warning(f"Vault auto-sync failed: {exc}")
 

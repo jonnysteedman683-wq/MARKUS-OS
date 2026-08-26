@@ -347,6 +347,10 @@
       <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg>
       <label>Cortex Explorer</label>
     </div>
+    <div class="app-icon" onclick="openApp('search')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <label>Cortex Search</label>
+    </div>
   </div>
 
   <!-- Application Windows Container -->
@@ -358,6 +362,7 @@
     <div class="taskbar-item" onclick="openApp('chat')">Cyber Chat</div>
     <div class="taskbar-item" onclick="openApp('console')">Hack Console</div>
     <div class="taskbar-item" onclick="openApp('cortex')">Cortex Explorer</div>
+    <div class="taskbar-item" onclick="openApp('search')">Cortex Search</div>
   </div>
 </div>
 
@@ -371,7 +376,26 @@
     deck: { title: 'MARKUS Command Deck', url: '/markus-os.html', width: 960, height: 600, x: 120, y: 70 },
     chat: { title: 'MARKUS Cyber Chat', url: '/markus-chat.html', width: 720, height: 520, x: 220, y: 120 },
     console: { title: 'MARKUS Hack Console', url: '/hack-console.html', width: 680, height: 460, x: 300, y: 160 },
-    cortex: { title: 'Cortex Memory Explorer', url: '/api/ui/state', width: 600, height: 400, x: 360, y: 200 }
+    cortex: { title: 'Cortex Memory Explorer', url: '/api/ui/state', width: 600, height: 400, x: 360, y: 200 },
+    search: {
+      title: 'Cortex FTS5 Search & Timeline Explorer',
+      width: 720,
+      height: 480,
+      x: 260,
+      y: 110,
+      html: `
+        <div style="padding: 16px; height: 100%; display: flex; flex-direction: column; gap: 12px; background: #030712; color: #00f0ff; font-family: monospace;">
+          <div style="display: flex; gap: 8px;">
+            <input id="cortex-search-input" type="text" placeholder="Search Cortex DB (FTS5 query e.g. router, goal, IPC)..." style="flex: 1; padding: 8px 12px; background: rgba(5,12,28,0.9); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; outline: none;" onkeydown="if(event.key==='Enter') runCortexSearch()">
+            <button onclick="runCortexSearch()" style="padding: 8px 16px; background: #00f0ff; color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;">SEARCH</button>
+          </div>
+          <div id="cortex-search-status" style="font-size: 11px; opacity: 0.7;">Enter query and click SEARCH...</div>
+          <div id="cortex-search-results" style="flex: 1; overflow-y: auto; border: 1px solid rgba(0,240,255,0.2); padding: 10px; background: rgba(0,0,0,0.4); border-radius: 4px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="opacity: 0.5;">Enter search term or click SEARCH to query recent thoughts.</div>
+          </div>
+        </div>
+      `
+    }
   };
 
   // --- Web Audio Acoustic Synapse ---
@@ -550,7 +574,7 @@
         </div>
       </div>
       <div class="window-content">
-        <iframe src="${cfg.url}"></iframe>
+        ${cfg.html ? cfg.html : `<iframe src="${cfg.url}"></iframe>`}
       </div>
     `;
 
@@ -625,6 +649,42 @@
     dragTarget = null;
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', stopDrag);
+  }
+
+  function escapeHtml(str) {
+    return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  async function runCortexSearch() {
+    const input = document.getElementById('cortex-search-input');
+    const query = input ? input.value.trim() : '';
+    const statusEl = document.getElementById('cortex-search-status');
+    const resultsEl = document.getElementById('cortex-search-results');
+    if (statusEl) statusEl.innerText = `Searching Cortex FTS5 for "${query || 'recent'}"...`;
+    playChime('DISPATCH');
+    try {
+      const res = await fetch(`/api/cortex/search?q=${encodeURIComponent(query)}&limit=25`);
+      const data = await res.json();
+      if (statusEl) statusEl.innerText = `Found ${data.count} matching thoughts for "${query || 'recent'}"`;
+      if (resultsEl) {
+        resultsEl.innerHTML = '';
+        if (!data.results || data.results.length === 0) {
+          resultsEl.innerHTML = '<div style="opacity: 0.5;">No thoughts matched the FTS5 query.</div>';
+          return;
+        }
+        data.results.forEach(t => {
+          const card = document.createElement('div');
+          card.style.cssText = 'padding: 8px; background: rgba(0,240,255,0.05); border-left: 3px solid #00f0ff; font-size: 12px; margin-bottom: 4px;';
+          const timeStr = new Date(t.created_at * 1000).toLocaleTimeString();
+          card.innerHTML = `<div style="display:flex; justify-content:space-between; opacity:0.8; font-size:10px; margin-bottom:4px;"><span style="color:#00f0ff">${t.entry_id} · <b>${t.agent}</b></span><span style="opacity:0.6">${timeStr}</span></div><div style="color:#e2e8f0; line-height:1.4;">${escapeHtml(t.content)}</div>`;
+          resultsEl.appendChild(card);
+        });
+      }
+      playChime('SUCCESS');
+    } catch (err) {
+      if (statusEl) statusEl.innerText = `Search error: ${err.message}`;
+      playChime('ERROR');
+    }
   }
 
   document.body.addEventListener('pointerdown', () => initAudio(), { once: true });
