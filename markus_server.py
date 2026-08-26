@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from markus_kernel import MarkusKernel, KernelMessage, TaskPriority
+from markus_brain_backend import ask_brain, route_brain_model
 from markus_hermes_bridge import MarkusHermesBridge
 from markus_sandbox import MarkusProcessSandbox
 from markus_router import MarkusIntentRouter
@@ -37,28 +38,15 @@ from markus_thors import ThorsEngine, create_thors_tables
 
 logger = logging.getLogger("Markus.Server")
 
-def _ask_markus_brain(prompt: str, timeout_s: float = 120.0) -> str:
-    """Shell out to the markus Hermes profile (DeepSeek via Nous) for a real answer."""
-    import subprocess, os, shutil, re
-    env = dict(os.environ)
-    env["HERMES_HOME"] = "C:/Users/jonny/AppData/Local/hermes/profiles/markus"
-    exe = shutil.which("hermes") or "hermes"
-    cmd = [exe, "chat", "-q", f"MARKUS user intent: {prompt}. Reply directly and concisely.", "-p", "markus"]
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s, env=env, encoding="utf-8", errors="replace")
-        out = (proc.stdout or "") + (proc.stderr or "")
-        ansi = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-        skip = ("query:", "warning:", "initializing", "reasoning", "resume", "session:", "title:", "duration:", "messages:", "  hermes", "  markus", "◆", "─", "━", "markus user intent", "hermes --resume", "hermes -c")
-        candidates = [ansi.sub("", l).strip() for l in out.splitlines()]
-        candidates = [l for l in candidates if l and not l.lower().startswith(skip) and "MARKUS user intent" not in l and any(c.isalpha() for c in l)]
-        return candidates[-1] if candidates else f"(no reply from markus profile) rc={proc.returncode}"
-    except Exception as exc:
-        return f"(markus brain error: {exc})"
+def _ask_markus_brain(prompt: str, tier_category: str = "DEFAULT_BALANCED", timeout_s: float = 60.0) -> str:
+    """Direct Nous API brain call — Hermes-independent (Hermes shell-out retired 2026-08-26)."""
+    return ask_brain(prompt, model=route_brain_model(tier_category), timeout_s=timeout_s)
 
 # Global instances
 kernel = MarkusKernel()
 bridge = MarkusHermesBridge(kernel)
 bridge.init_private_infra()
+kernel.memory.set_register("OS_STATUS", "BOOTED")  # server up == OS online
 sandbox = MarkusProcessSandbox()
 router = MarkusIntentRouter()
 dice_engine = MarkusDiceEngine(cortex=kernel.memory.db)
@@ -367,7 +355,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
 
                 # Route intent and build response
                 routed = router.route_intent(prompt)
-                response_text = _ask_markus_brain(prompt)
+                response_text = _ask_markus_brain(prompt, tier_category=routed.tier_category)
 
                 # Broadcast real-time SSE event to all connected UI surfaces
                 broadcast_sse_event("intent", {
