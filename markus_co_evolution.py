@@ -90,10 +90,10 @@ class CoEvolutionOrchestrator:
         Execute the dice engine with multi-agent debate.
         Returns: (final_roll, roll_sequence, debate_verdict)
         """
-        final_roll, rolls = await self.dice_engine.execute_dice_cycle()
-        action_label = self.dice_engine.ACTIONS.get(final_roll, "UNKNOWN")
-        logger.info(f"[CoEvo] Dice rolled: {final_roll} ({action_label}) | Sequence: {rolls}")
-        return final_roll, rolls, None
+        roll = self.dice_engine.roll_cryptographic_dice()
+        action_label = self.dice_engine.ACTIONS.get(roll, "UNKNOWN")
+        logger.info(f"[CoEvo] Dice rolled: {roll} ({action_label})")
+        return roll, [roll], None
 
     # ─── Phase 2: PHOENIX CLI Validation ───
 
