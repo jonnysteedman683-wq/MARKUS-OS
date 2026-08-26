@@ -6,7 +6,22 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 
 ## Dice Cycle Log
 
-### 2026-08-26 · Dice chain [6,6,3] → `UPGRADE_AI_AGENT` → Kanban Worker v1.1
+### 2026-08-26 · Direct Upgrade → `UPGRADE_OBSIDIAN_PALACE` → Obsidian Palace Bridge Live
+- **Outcome:** Upgrade #7 wired into the running OS end-to-end.
+  - **Vault retarget:** sync now writes to the live `Documents/VORPAL Vault/Journal/Markus/`
+    (legacy `Obsidian Vault` kept only as fallback — frozen ref).
+  - **Append-only live stream:** new `append_new_thoughts()` writes each fresh L3 cortex
+    thought as a markdown bullet to `YYYY-MM-DD-MARKUS-LIVE.md`, gated by a
+    `VAULT_SYNC_LAST_TS` watermark in the cortex DB — idempotent across restarts, no dupes,
+    nothing rewritten.
+  - **Rolling digest:** `YYYY-MM-DD-MARKUS-CORTEX.md` regenerated (top-50 snapshot) on each sync.
+  - **Server wiring:** `GET /api/vault/sync` on-demand flush + boot-time catch-up + auto-sync
+    daemon (every 300s) started in `run_server()`.
+- **Verification:** py_compile OK · standalone sync drained 400+ thoughts in two batches ·
+  idempotency confirmed (run 2 = UP_TO_DATE/0 after watermark advance) · integration harness
+  **9/9** · server restarted on new code, `/api/vault/sync` → `{"status":"OK", "vault":"...VORPAL Vault"}`, live stream UP_TO_DATE.
+
+---
 - **Outcome:** `markus_kanban_worker.py` modernized (real-body execution, schema sync, honest failure path).
   - Executes the **real task body** in the sandbox (raw python or markdown-fenced) instead of a canned stub print.
   - Syncs with the live kanban schema: `task_runs` records per attempt, `consecutive_failures`, `last_failure_error`, `max_retries`, `claim_lock`/`claim_expires`/`worker_pid`.
@@ -72,7 +87,7 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 | **#4 Isolated Process Sandbox** (`markus_sandbox.py`) | **High (10/10)** | **Critical (9.5/10)** | Medium (Async subprocess) | **Complete & Verified** |
 | **#5 Multi-Model Intent Router** (`markus_router.py`) | **High (10/10)** | **High (8.5/10)** | Low (Heuristic Regex Triage) | **Complete & Verified** |
 | **#6 Bidirectional Kanban Worker** (`markus_kanban_worker.py`) | **High (10/10)** | **Critical (9/10)** | Medium (SQLite claim locks) | **Complete & Verified** |
-| **#7 Obsidian Palace Sync** (`markus_obsidian_sync.py`) | **High (10/10)** | **High (8/10)** | Low (Vault markdown writer) | **Next Queue** |
+| **#7 Obsidian Palace Sync** (`markus_obsidian_sync.py`) | **High (10/10)** | **High (8/10)** | Low (Vault markdown writer) | **Complete & Live** |
 | **#8 Harmonic Web Audio Synth** (`markus-os.html`) | **High (10/10)** | **Medium (7/10)** | Low (Browser Web Audio API) | **Next Queue** |
 | **#9 Self-Healing Circuit Breaker** (`markus_resilience.py`) | **High (9/10)** | **Critical (9.5/10)** | Medium (Stateful backoff) | **Queued** |
 | **#10 Swarm Mesh UDP Discovery** (`markus_mesh.py`) | **Medium (7.5/10)** | **High (8.5/10)** | High (Cross-subnet UDP/LAN) | **Queued** |

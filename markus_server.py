@@ -32,6 +32,7 @@ from markus_acoustic_synapse import MarkusAcousticSynapse
 from markus_complexity_governor import MarkusComplexityGovernor
 from markus_speculative_cache import MarkusSpeculativeCache
 from markus_prompt_matrix import MarkusPromptSynthesisMatrix
+from markus_obsidian_sync import MarkusObsidianSync
 from markus_capabilities import CapabilityRegistry
 from markus_capability_synthesizer import MarkusCapabilitySynthesizer
 from markus_thors import ThorsEngine, create_thors_tables
@@ -47,6 +48,7 @@ kernel = MarkusKernel()
 bridge = MarkusHermesBridge(kernel)
 bridge.init_private_infra()
 kernel.memory.set_register("OS_STATUS", "BOOTED")  # server up == OS online
+obsidian_sync = MarkusObsidianSync(db=kernel.memory.db)  # L3 -> VORPAL Vault narrative bridge
 sandbox = MarkusProcessSandbox()
 router = MarkusIntentRouter()
 dice_engine = MarkusDiceEngine(cortex=kernel.memory.db)
@@ -282,6 +284,21 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             self._set_headers(200)
             self.wfile.write(json.dumps(res).encode("utf-8"))
 
+        elif self.path == "/api/vault/sync":
+            # Obsidian Palace Bridge — on-demand L3 -> vault flush
+            try:
+                digest = obsidian_sync.sync_daily_digest(limit=50)
+                live = obsidian_sync.append_new_thoughts()
+                res = {
+                    "status": "OK",
+                    "vault": str(obsidian_sync.vault_path),
+                    "digest": digest,
+                    "live": live,
+                }
+            except Exception as exc:
+                res = {"status": "ERROR", "error": str(exc)}
+            self._set_headers(200)
+            self.wfile.write(json.dumps(res).encode("utf-8"))
         elif self.path == "/api/health" or self.path == "/api/status":
             procs = [
                 {"pid": p.pid, "name": p.name, "state": p.state.value, "priority": p.priority.name}
@@ -758,6 +775,23 @@ def run_server(port: int = 8128) -> None:
     server_address = ("", port)
     httpd = ThreadingHTTPServer(server_address, MarkusRequestHandler)
     print(f"[MARKUS-OS] Live API & SSE Stream Server listening on http://localhost:{port}")
+    print(f"[MARKUS-OS] Obsidian Palace Bridge -> {obsidian_sync.vault_path}")
+
+    def _auto_vault_sync(interval_s: float = 300.0) -> None:
+        """Append new L3 thoughts to the VORPAL Vault journal periodically."""
+        try:
+            obsidian_sync.append_new_thoughts()  # immediate catch-up on boot
+        except Exception as exc:
+            logger.warning(f"Vault boot sync failed: {exc}")
+        while True:
+            time.sleep(interval_s)
+            try:
+                obsidian_sync.append_new_thoughts()
+            except Exception as exc:
+                logger.warning(f"Vault auto-sync failed: {exc}")
+
+    threading.Thread(target=_auto_vault_sync, daemon=True).start()
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
