@@ -8,9 +8,13 @@ import json
 import os
 import shutil
 import sqlite3
+import sys
 import tempfile
 import time
 from pathlib import Path
+
+# Add project root to sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 # Target imports
 from markus_router import MarkusIntentRouter, RouteDecision
@@ -127,8 +131,9 @@ def test_vorpal_bridge_adversarial():
 
 def test_db_fts5_vacuum_adversarial():
     print("\n--- Testing Cortex DB FTS5 and Compaction Invariants ---")
-    with tempfile.TemporaryDirectory() as tmpdir:
-        db_path = Path(tmpdir) / "cortex_adversarial.db"
+    temp_dir = Path(tempfile.mkdtemp(prefix="cortex_adv_"))
+    try:
+        db_path = temp_dir / "cortex_adversarial.db"
         db = PersistentCortexDB(db_path=db_path)
         
         # Populate 100 thoughts with distinct keyword distributions
@@ -170,6 +175,8 @@ def test_db_fts5_vacuum_adversarial():
             cur.execute("PRAGMA quick_check")
             check_result = cur.fetchone()[0]
             assert check_result == "ok", f"SQLite quick_check failed: {check_result}"
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
     print("[PASS] Cortex DB FTS5 deletion synchronization and SQLite integrity verified.")
 
 def test_context_pruner_adversarial():

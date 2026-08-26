@@ -90,7 +90,7 @@ class MarkusIntentRouter:
         # snapshot says no internet), route to the local model regardless.
         network_down = self._network_down()
         if is_offline or network_down:
-            return RouteDecision(
+            return self._apply_matrix(RouteDecision(
                 target_model=self.MODEL_AIRGAPPED_LOCAL,
                 provider="custom",
                 tier_category="OFFLINE_LOCAL",
@@ -99,7 +99,7 @@ class MarkusIntentRouter:
                         if is_offline else "Network down -> forced local model (network-intel)."),
                 estimated_tokens=estimated_tokens,
                 network_down=network_down
-            )
+            ))
 
         # 2. Megacontext / Architecture Planning Rule (>15k tokens or multi-file architecture keywords)
         if estimated_tokens > 15000 or self.arch_patterns.search(prompt):
