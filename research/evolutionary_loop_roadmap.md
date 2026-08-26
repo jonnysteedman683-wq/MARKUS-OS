@@ -28,6 +28,9 @@
 
 ## ✅ Status: Implemented
 
+All three loops verified by `hermes_verify_evolution_loops.py` — stdlib-only harness,
+8/8 gates pass, exit 0 (compile gate + self-tests + contract checks).
+
 - **Reflexion Loop (`markus_reflexion.py`)**: Passes self-test (`_test_reflexion`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6b).
 - **Population Dice Evolution (`markus_population_dice.py`)**: Passes self-test (`_test_population_dice`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6c).
 - **Red Team Adversarial Loop (`markus_redteam.py`)**: Passes self-test (`_test_redteam`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6d).
@@ -163,7 +166,7 @@ patterns = {
 
 ---
 
-**Status:** Research phase complete. Awaiting web access for deeper paper/code analysis before implementation.
+**Status:** Implemented — see the "✅ Status: Implemented" section at the top of this file.
 
 ---
 

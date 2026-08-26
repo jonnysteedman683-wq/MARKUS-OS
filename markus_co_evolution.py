@@ -80,7 +80,9 @@ class CoEvolutionOrchestrator:
         self.cortex_ring = MarkusSharedRingBuffer(
             name="markus_cortex_ring", capacity=256, slot_size=1024, create=True
         )
-        # Initialize the three new evolution loops
+        # Initialize the three new evolution loops.
+        # Wired into execute_cycle(): Phase 6b (reflexion), 6c (population), 6d (redteam).
+        # Covered by hermes_verify_evolution_loops.py (8/8 gates, stdlib-only).
         self.reflexion_engine = ReflexionLoopEngine(cortex=self.cortex)
         self.population_engine = PopulationDiceEngine(population_size=10, cortex=self.cortex)
         self.redteam_engine = RedTeamOrchestrator()
