@@ -35,8 +35,12 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
 import sys
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -435,9 +439,9 @@ def _test_co_evolution():
     # Run one cycle
     result = asyncio.run(orch.execute_cycle())
 
-    print(f"\n✅ Cycle Results:")
+    print(f"\n[OK] Cycle Results:")
     print(f"  Cycle ID: {result['cycle_id']}")
-    print(f"  Dice Roll: {result['dice_roll']} → {result['action']}")
+    print(f"  Dice Roll: {result['dice_roll']} -> {result['action']}")
     print(f"  Validation: {'PASS' if result['validation']['passed'] else 'FAIL'}")
     print(f"  Commit: {result['commit'] or 'none'}")
     print(f"  Health: {'HEALTHY' if result['health']['passed'] else 'DEGRADED'}")
@@ -445,7 +449,7 @@ def _test_co_evolution():
     print(f"  Reward: {result['reward']:.2f}")
     print(f"  Elapsed: {result['elapsed_ms']:.2f}ms")
 
-    print(f"\n✅ Co-Evolution Orchestrator Test: PASSED")
+    print(f"\n[OK] Co-Evolution Orchestrator Test: PASSED")
 
 
 if __name__ == "__main__":
