@@ -177,4 +177,4 @@ if __name__ == "__main__":
     recovered = router.matrix.models[lag].current_weight
     print(f"Laguna weight: dipped to {dipped}, recovered to {recovered} after 5 fast successes")
     assert recovered > dipped, "fast successes after a dip should raise the model's routing weight"
-    print("✅ Feedback loop: router record_outcome -> adaptive matrix: PASSED")
+    print("[OK] Feedback loop: router record_outcome -> adaptive matrix: PASSED")

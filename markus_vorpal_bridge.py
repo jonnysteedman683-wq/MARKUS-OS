@@ -268,7 +268,7 @@ def _self_test() -> int:
         loaded = json.loads(p.read_text(encoding="utf-8"))
         assert loaded["server_ok"] is True
         print(f"  telemetry ledger written: {p} ({len(loaded) } keys)")
-    print("✅ Markus-Vorpal Bridge: PASSED")
+    print("[OK] Markus-Vorpal Bridge: PASSED")
     return 0
 
 

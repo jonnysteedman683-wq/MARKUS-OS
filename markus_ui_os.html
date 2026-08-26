@@ -52,7 +52,7 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 40px;
+    height: 42px;
     background: var(--bg-panel);
     border-bottom: 1px solid var(--border-dim);
     backdrop-filter: blur(12px);
@@ -82,10 +82,33 @@
     border-radius: 4px;
   }
 
+  /* Scrolling Thought Ticker */
+  #ticker-container {
+    flex: 1;
+    margin: 0 24px;
+    height: 26px;
+    background: rgba(0, 240, 255, 0.04);
+    border: 1px solid var(--border-dim);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 11px;
+    color: var(--emerald);
+  }
+
+  #ticker-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.05em;
+  }
+
   .top-telemetry {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
   }
 
   .stat-pill {
@@ -292,9 +315,16 @@
       <span>MARKUS UI OS</span>
       <span class="badge">ONLINE</span>
     </div>
+
+    <!-- Live Telemetry Stream Ticker -->
+    <div id="ticker-container">
+      <div id="ticker-text">⚡ Telemetry stream initialized. Awaiting live cortex thoughts...</div>
+    </div>
+
     <div class="top-telemetry">
-      <div class="stat-pill" id="btn-sound" onclick="toggleAudio()">ACOUSTICS: SOUND ON</div>
-      <div class="stat-pill" id="stream-status">SSE: CONNECTED</div>
+      <div class="stat-pill" id="btn-layout" onclick="cycleLayout()">LAYOUT: FLOATING</div>
+      <div class="stat-pill active" id="btn-sound" onclick="toggleAudio()">ACOUSTICS: SOUND ON</div>
+      <div class="stat-pill" id="stream-status">SSE: CONNECTING...</div>
       <div class="stat-pill" id="clock">00:00:00</div>
     </div>
   </div>
@@ -334,6 +364,7 @@
 <script>
   let highestZ = 100;
   let audioMuted = false;
+  let currentLayout = 'FLOATING'; // FLOATING, SPLIT, GRID
   const windows = {};
 
   const APP_CONFIGS = {
@@ -342,6 +373,86 @@
     console: { title: 'MARKUS Hack Console', url: '/hack-console.html', width: 680, height: 460, x: 300, y: 160 },
     cortex: { title: 'Cortex Memory Explorer', url: '/api/ui/state', width: 600, height: 400, x: 360, y: 200 }
   };
+
+  // --- Web Audio Acoustic Synapse ---
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playTone(freqs, durationMs = 300, type = 'sine') {
+    if (audioMuted) return;
+    try {
+      initAudio();
+      if (!audioCtx) return;
+      freqs.forEach(freq => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (durationMs / 1000));
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + (durationMs / 1000));
+      });
+    } catch (e) {}
+  }
+
+  function playChime(profile) {
+    if (profile === 'BOOT') playTone([220, 440, 660], 400);
+    else if (profile === 'PULSE') playTone([440, 554], 150);
+    else if (profile === 'DISPATCH') playTone([523, 659, 783], 250);
+    else if (profile === 'SUCCESS') playTone([440, 554, 659, 880], 500);
+    else if (profile === 'ERROR') playTone([150, 212], 400, 'sawtooth');
+  }
+
+  // --- Real-Time SSE Ticker & Stream ---
+  function initSSE() {
+    const statusElem = document.getElementById('stream-status');
+    const tickerText = document.getElementById('ticker-text');
+
+    const sse = new EventSource('/api/stream');
+
+    sse.onopen = () => {
+      statusElem.innerText = 'SSE: LIVE (0ms)';
+      statusElem.classList.add('active');
+      playChime('BOOT');
+    };
+
+    sse.addEventListener('handshake', (e) => {
+      playChime('PULSE');
+    });
+
+    sse.addEventListener('thought', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        tickerText.innerText = `🧠 [${data.agent || 'CORTEX'}]: ${data.content || 'Thought recorded'}`;
+        playChime('PULSE');
+      } catch (err) {}
+    });
+
+    sse.addEventListener('co_evolution', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        tickerText.innerText = `🧬 [CO-EVOLUTION]: ${data.message || 'Cycle executed'}`;
+        playChime('SUCCESS');
+      } catch (err) {}
+    });
+
+    sse.onerror = () => {
+      statusElem.innerText = 'SSE: RECONNECTING';
+      statusElem.classList.remove('active');
+    };
+  }
 
   function updateClock() {
     const d = new Date();
@@ -355,6 +466,45 @@
     const btn = document.getElementById('btn-sound');
     btn.innerText = audioMuted ? 'ACOUSTICS: MUTED' : 'ACOUSTICS: SOUND ON';
     btn.classList.toggle('active', !audioMuted);
+    if (!audioMuted) playChime('PULSE');
+  }
+
+  function cycleLayout() {
+    const layouts = ['FLOATING', '2-COLUMN', '4-GRID'];
+    const idx = (layouts.indexOf(currentLayout) + 1) % layouts.length;
+    currentLayout = layouts[idx];
+    document.getElementById('btn-layout').innerText = `LAYOUT: ${currentLayout}`;
+    applyLayout(currentLayout);
+    playChime('DISPATCH');
+  }
+
+  function applyLayout(layout) {
+    const activeWins = Object.values(windows).filter(w => !w.classList.contains('minimized'));
+    if (activeWins.length === 0) return;
+
+    if (layout === '2-COLUMN') {
+      const colW = Math.floor((window.innerWidth - 60) / 2);
+      const rowH = Math.floor((window.innerHeight - 120) / Math.ceil(activeWins.length / 2));
+      activeWins.forEach((win, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        win.style.left = `${30 + col * (colW + 10)}px`;
+        win.style.top = `${55 + row * (rowH + 10)}px`;
+        win.style.width = `${colW}px`;
+        win.style.height = `${rowH}px`;
+      });
+    } else if (layout === '4-GRID') {
+      const w = Math.floor((window.innerWidth - 60) / 2);
+      const h = Math.floor((window.innerHeight - 130) / 2);
+      activeWins.slice(0, 4).forEach((win, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        win.style.left = `${30 + col * (w + 10)}px`;
+        win.style.top = `${55 + row * (h + 10)}px`;
+        win.style.width = `${w}px`;
+        win.style.height = `${h}px`;
+      });
+    }
   }
 
   function bringToFront(winId) {
@@ -368,10 +518,12 @@
   }
 
   function openApp(appId) {
+    initAudio();
     if (windows[appId]) {
       const win = document.getElementById(`win-${appId}`);
       win.classList.remove('minimized');
       bringToFront(appId);
+      playChime('PULSE');
       return;
     }
 
@@ -405,6 +557,11 @@
     win.addEventListener('mousedown', () => bringToFront(appId));
     document.getElementById('windows-root').appendChild(win);
     windows[appId] = win;
+    playChime('DISPATCH');
+
+    if (currentLayout !== 'FLOATING') {
+      applyLayout(currentLayout);
+    }
   }
 
   function closeApp(appId) {
@@ -412,6 +569,7 @@
     if (win) {
       win.remove();
       delete windows[appId];
+      playChime('PULSE');
     }
   }
 
@@ -469,9 +627,11 @@
     document.removeEventListener('mouseup', stopDrag);
   }
 
-  // Open default Command Deck window on boot
+  document.body.addEventListener('pointerdown', () => initAudio(), { once: true });
+
   window.addEventListener('DOMContentLoaded', () => {
     openApp('deck');
+    initSSE();
   });
 </script>
 </body>

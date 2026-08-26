@@ -37,6 +37,8 @@ from markus_capabilities import CapabilityRegistry
 from markus_capability_synthesizer import MarkusCapabilitySynthesizer
 from markus_thors import ThorsEngine, create_thors_tables
 from markus_ui_db import MarkusUIDatabase
+from markus_resilience import CircuitBreakerManager
+from markus_co_evolution import CoEvolutionOrchestrator
 
 logger = logging.getLogger("Markus.Server")
 
@@ -46,6 +48,7 @@ def _ask_markus_brain(prompt: str, tier_category: str = "DEFAULT_BALANCED", time
 # Global instances
 kernel = MarkusKernel()
 ui_db = MarkusUIDatabase()
+circuit_breaker = CircuitBreakerManager()
 bridge = MarkusHermesBridge(kernel)
 bridge.init_private_infra()
 kernel.memory.set_register("OS_STATUS", "BOOTED")  # server up == OS online
@@ -892,7 +895,23 @@ def run_server(port: int = 8128) -> None:
             except Exception as exc:
                 logger.warning(f"Vault auto-sync failed: {exc}")
 
-    threading.Thread(target=_auto_vault_sync, daemon=True).start()
+    def _auto_co_evolution_daemon(interval_s: float = 300.0) -> None:
+        """Execute autonomous 7-phase co-evolution cycle periodically."""
+        co_evo = CoEvolutionOrchestrator(cortex=kernel.memory.db, dice_engine=dice_engine, kernel=kernel)
+        while True:
+            time.sleep(interval_s)
+            try:
+                asyncio.run(co_evo.execute_cycle())
+                broadcast_sse_event("co_evolution", {
+                    "status": "CYCLE_COMPLETE",
+                    "message": "Background co-evolution cycle executed successfully.",
+                    "timestamp": time.time()
+                })
+            except Exception as exc:
+                logger.warning(f"Co-evolution daemon cycle error: {exc}")
+
+    threading.Thread(target=_auto_vault_sync, daemon=True, name="VaultSyncDaemon").start()
+    threading.Thread(target=_auto_co_evolution_daemon, daemon=True, name="CoEvoDaemon").start()
 
     try:
         httpd.serve_forever()
