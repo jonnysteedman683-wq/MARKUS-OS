@@ -1,4 +1,4 @@
-# BRIEFING — 2026-08-27T02:38:20+10:00
+# BRIEFING — 2026-08-27T02:38:40+10:00
 
 ## Mission
 Enhance OMNIPRIME (MARKUS OS, VORPAL, HERMES) with air-gapped offline capability: local Ollama fallback (custom/qwen2.5-coder:7b), offline IPC bridge synchronization, and local SQLite memory compaction.
@@ -36,7 +36,7 @@ Enhance OMNIPRIME (MARKUS OS, VORPAL, HERMES) with air-gapped offline capability
   4. M3: Local Memory & Context Compaction Engine [done]
   5. M4: Final Verification & Test Suite [in-progress]
 - **Current phase**: 5 (Milestone M4: Review, Challenge, Audit & Gate Verification)
-- **Current focus**: Dispatching 2 Reviewers, 2 Challengers, and 1 Forensic Auditor for Milestone M4
+- **Current focus**: Awaiting verdicts from Reviewers 1 & 2, Challengers 1 & 2, and Auditor 1
 
 ## 🔒 Key Constraints
 - Dispatch-only orchestrator: NEVER write source code, NEVER run builds/tests directly.
@@ -49,8 +49,7 @@ Enhance OMNIPRIME (MARKUS OS, VORPAL, HERMES) with air-gapped offline capability
 - Updated: 2026-08-27T02:19:33+10:00
 
 ## Key Decisions Made
-- M1, M2, M3 implementations completed and self-verified by Workers M2 & M3.
-- Initiating Milestone M4 verification with 2 Reviewers, 2 Challengers, and 1 Forensic Auditor.
+- Dispatched 5 gate agents for M4: Reviewer 1 (4e35f2ff-31bc-4cab-b286-43f5f5e92c93), Reviewer 2 (174d0bf3-095f-4eaf-8a1a-73d27d0d3845), Challenger 1 (1e32f3c0-7e9f-43e5-ae37-e29c24b8f3c0), Challenger 2 (74061756-7397-4668-bcf9-10756b3c38ed), Auditor 1 (e9577edc-7110-440d-ba42-ac07551dd15d).
 
 ## Team Roster
 | Agent | Type | Work Item | Status | Conv ID |
@@ -60,16 +59,16 @@ Enhance OMNIPRIME (MARKUS OS, VORPAL, HERMES) with air-gapped offline capability
 | explorer_survey_3 | teamwork_preview_explorer | Survey R3 Memory & Evolution | completed | 3979824a-b818-4837-b3c7-36e48831d753 |
 | worker_m2 | teamwork_preview_worker | Implement M2 Offline IPC Bridges | completed | bb676550-cc20-4223-88b6-afb25a59b475 |
 | worker_m3 | teamwork_preview_worker | Implement M3 SQLite Compaction | completed | b26751f9-f0d9-4b3f-9a23-cb2295b84385 |
-| reviewer_1 | teamwork_preview_reviewer | Review R1 & R2 Bridges | in-progress | [pending] |
-| reviewer_2 | teamwork_preview_reviewer | Review R3 & Evolution Loops | in-progress | [pending] |
-| challenger_1 | teamwork_preview_challenger | Challenge Routing & IPC Bridges | in-progress | [pending] |
-| challenger_2 | teamwork_preview_challenger | Challenge Cortex & Context Pruner | in-progress | [pending] |
-| auditor_1 | teamwork_preview_auditor | Forensic Integrity Audit | in-progress | [pending] |
+| reviewer_1 | teamwork_preview_reviewer | Review R1 & R2 Bridges | in-progress | 4e35f2ff-31bc-4cab-b286-43f5f5e92c93 |
+| reviewer_2 | teamwork_preview_reviewer | Review R3 & Evolution Loops | in-progress | 174d0bf3-095f-4eaf-8a1a-73d27d0d3845 |
+| challenger_1 | teamwork_preview_challenger | Challenge Routing & IPC Bridges | in-progress | 1e32f3c0-7e9f-43e5-ae37-e29c24b8f3c0 |
+| challenger_2 | teamwork_preview_challenger | Challenge Cortex & Context Pruner | in-progress | 74061756-7397-4668-bcf9-10756b3c38ed |
+| auditor_1 | teamwork_preview_auditor | Forensic Integrity Audit | in-progress | e9577edc-7110-440d-ba42-ac07551dd15d |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 5 / 16 (Will be 10 / 16 upon M4 dispatch)
-- Pending subagents: none
+- Spawn count: 10 / 16
+- Pending subagents: 4e35f2ff-31bc-4cab-b286-43f5f5e92c93, 174d0bf3-095f-4eaf-8a1a-73d27d0d3845, 1e32f3c0-7e9f-43e5-ae37-e29c24b8f3c0, 74061756-7397-4668-bcf9-10756b3c38ed, e9577edc-7110-440d-ba42-ac07551dd15d
 - Predecessor: none
 - Successor: not yet spawned
 
@@ -83,5 +82,6 @@ Enhance OMNIPRIME (MARKUS OS, VORPAL, HERMES) with air-gapped offline capability
 - C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\.agents\orchestrator_1\DISPATCH.md — Orchestrator Dispatch
 - C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\.agents\orchestrator_1\BRIEFING.md — Persistent Briefing State
 - C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\.agents\orchestrator_1\progress.md — Liveness & Progress
+- C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\.agents\orchestrator_1\GATE_STATUS.md — Milestone M4 Gate Status
 - C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\.agents\worker_m2\handoff.md — Worker M2 Handoff
 - C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\.agents\worker_m3\handoff.md — Worker M3 Handoff
