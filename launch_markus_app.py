@@ -1,39 +1,55 @@
 #!/usr/bin/env python3
-"""
-MARKUS OS Electron Application Launcher
-Launches the Electron wrapper for the MARKUS OS Holographic Command Deck.
-Usage: python launch_markus_app.py [--dev] [--packaged]
-"""
+"""launch_markus_app.py — Python Desktop App Launcher & Executable Packaging Utility for MARKUS OS."""
 
 from __future__ import annotations
-import argparse
 import os
-import subprocess
 import sys
+import subprocess
+import shutil
 from pathlib import Path
 
-ELECTRON_DIR = Path(sys.argv[0]).resolve().parent / "markus-os-electron"
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Launch MARKUS OS Electron Desktop App")
-    parser.add_argument("--dev", action="store_true", help="Run via npm start (development)")
-    parser.add_argument("--packaged", action="store_true", help="Build packaged installer")
-    args = parser.parse_args()
+ROOT = Path(__file__).resolve().parent
+ELECTRON_DIR = ROOT / "markus-os-electron"
 
-    os.chdir(ELECTRON_DIR)
+def check_npm_installed() -> bool:
+    return shutil.which("npm") is not None or shutil.which("npm.cmd") is not None
 
-    if not (ELECTRON_DIR / "node_modules").exists():
-        print("Installing Electron dependencies...")
-        subprocess.run(["npm", "install"], cwd=str(ELECTRON_DIR), check=True)
+def run_npm_install():
+    print("[MARKUS App Launcher] Ensuring npm dependencies in markus-os-electron...")
+    npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+    subprocess.run([npm_cmd, "install"], cwd=str(ELECTRON_DIR), check=True)
 
-    if args.packaged:
-        print("Building packaged Electron application...")
-        subprocess.run(["npm", "run", "dist"], cwd=str(ELECTRON_DIR), check=True)
+def launch_electron_dev():
+    print("[MARKUS App Launcher] Launching MARKUS OS Desktop App (Dev Mode)...")
+    npx_cmd = "npx.cmd" if os.name == "nt" else "npx"
+    subprocess.run([npx_cmd, "electron", "."], cwd=str(ELECTRON_DIR))
+
+def build_executable_package():
+    print("[MARKUS App Launcher] Packaging MARKUS OS Desktop Executable...")
+    npx_cmd = "npx.cmd" if os.name == "nt" else "npx"
+    subprocess.run([npx_cmd, "electron-builder", "--dir"], cwd=str(ELECTRON_DIR), check=True)
+    print(f"[MARKUS App Launcher] Package built cleanly in: {ELECTRON_DIR / 'dist'}")
+
+def main():
+    print("==========================================================")
+    print("  MARKUS OS Desktop Launcher & Packaging Utility")
+    print("==========================================================")
+
+    if not check_npm_installed():
+        print("[ERROR] npm is not found in PATH. Please install Node.js.")
+        sys.exit(1)
+
+    node_modules = ELECTRON_DIR / "node_modules"
+    if not node_modules.exists():
+        run_npm_install()
+
+    if "--package" in sys.argv or "--dist" in sys.argv:
+        build_executable_package()
     else:
-        print("Starting MARKUS OS in Electron development mode...")
-        subprocess.run(["npm", "start"], cwd=str(ELECTRON_DIR), check=True)
-
-    return 0
+        launch_electron_dev()
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
