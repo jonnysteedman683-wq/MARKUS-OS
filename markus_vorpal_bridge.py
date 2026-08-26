@@ -229,7 +229,7 @@ class MarkusVorpalBridge:
         if not VORPAL_SPOOL_PATH.exists():
             return 0
         try:
-            lines = [l.strip() for l in VORPAL_SPOOL_PATH.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+            lines = VORPAL_SPOOL_PATH.read_text(encoding="utf-8", errors="replace").splitlines()
             return len(lines)
         except Exception:
             return 0
@@ -243,11 +243,14 @@ class MarkusVorpalBridge:
         if not (VORPAL_ROOT.exists() or target.parent.exists()):
             return 0
         try:
-            lines = [l.strip() for l in VORPAL_SPOOL_PATH.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+            lines = VORPAL_SPOOL_PATH.read_text(encoding="utf-8", errors="replace").splitlines()
             if not lines:
                 return 0
             last_payload = None
             for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
                 try:
                     payload = json.loads(line)
                     if isinstance(payload, dict):

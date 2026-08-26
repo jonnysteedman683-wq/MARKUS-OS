@@ -80,7 +80,7 @@ class MarkusIntentRouter:
             best = self.matrix.select_best_model()
             decision.matrix_model = best.target_model
             decision.matrix_weight = best.effective_weight
-            decision.network_down = best.metrics_snapshot.get("network_down", False)
+            decision.network_down = decision.network_down or best.metrics_snapshot.get("network_down", False)
         return decision
 
     def route_intent(self, prompt: str, context_tokens: int = 0, is_offline: bool = False) -> RouteDecision:
