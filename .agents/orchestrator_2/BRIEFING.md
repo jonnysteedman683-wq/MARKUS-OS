@@ -49,12 +49,13 @@ Orchestrate M4 Final Verification, Adversarial Review, Stress Testing, and Integ
 ## Team Roster
 | Agent | Type | Work Item | Status | Conv ID |
 |-------|------|-----------|--------|---------|
-| worker_remediation_2 | teamwork_preview_worker | Defensive dict validation & test runs | in-progress | 6baf6bc0-95e1-4980-8fb5-4c657c95fcd3 |
+| worker_remediation_2 | teamwork_preview_worker | Defensive dict validation & test runs | failed/replaced | 6baf6bc0-95e1-4980-8fb5-4c657c95fcd3 |
+| worker_remediation_3 | teamwork_preview_worker | Defensive dict validation & test runs | in-progress | 066e95e3-2ee3-4a09-a63d-7d9ab91d787d |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 1 / 16
-- Pending subagents: 6baf6bc0-95e1-4980-8fb5-4c657c95fcd3
+- Spawn count: 2 / 16
+- Pending subagents: 066e95e3-2ee3-4a09-a63d-7d9ab91d787d
 - Predecessor: orchestrator_1
 - Successor: not yet spawned
 
