@@ -1,5 +1,5 @@
 {
-  "timestamp": 1786798782.1963058,
+  "timestamp": 1787736112.5786726,
   "benchmark_results": {
     "results": [
       {
@@ -7,7 +7,7 @@
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -16,7 +16,7 @@
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -25,7 +25,7 @@
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -34,7 +34,7 @@
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -43,7 +43,7 @@
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -52,7 +52,7 @@
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 300.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -61,7 +61,7 @@
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 300.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -70,7 +70,7 @@
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 300.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -79,7 +79,7 @@
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 300.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -88,7 +88,7 @@
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 300.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -97,7 +97,7 @@
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -106,7 +106,7 @@
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -115,7 +115,7 @@
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -124,7 +124,7 @@
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -133,7 +133,7 @@
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
@@ -142,7 +142,7 @@
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 300.0,
         "success": true,
         "error": null
       },
@@ -151,7 +151,7 @@
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 300.0,
         "success": true,
         "error": null
       },
@@ -160,7 +160,7 @@
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 300.0,
         "success": true,
         "error": null
       },
@@ -169,7 +169,7 @@
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 300.0,
         "success": true,
         "error": null
       },
@@ -178,7 +178,7 @@
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 300.0,
         "success": true,
         "error": null
       },
@@ -232,7 +232,7 @@
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 200.0,
         "success": true,
         "error": null
       },
@@ -241,7 +241,7 @@
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 200.0,
         "success": true,
         "error": null
       },
@@ -250,7 +250,7 @@
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 200.0,
         "success": true,
         "error": null
       },
@@ -259,7 +259,7 @@
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 200.0,
         "success": true,
         "error": null
       },
@@ -268,7 +268,7 @@
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 500.0,
+        "latency_ms": 200.0,
         "success": true,
         "error": null
       },
@@ -277,7 +277,7 @@
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -286,7 +286,7 @@
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -295,7 +295,7 @@
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -304,7 +304,7 @@
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       },
@@ -313,7 +313,7 @@
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 700.0,
         "success": true,
         "error": null
       }
@@ -325,37 +325,37 @@
         "successful_tasks": 5,
         "total_tokens": 600
       },
-      "nous/nemotron-3-ultra:free": {
+      "openrouter/mistral-7b-instruct:free": {
+        "score": 0.8,
+        "avg_latency_ms": 200.0,
+        "successful_tasks": 5,
+        "total_tokens": 600
+      },
+      "openrouter/deepseek-chat:free": {
         "score": 0.7,
         "avg_latency_ms": 300.0,
         "successful_tasks": 5,
         "total_tokens": 600
       },
-      "openrouter/deepseek-chat:free": {
-        "score": 0.5,
-        "avg_latency_ms": 500.0,
-        "successful_tasks": 5,
-        "total_tokens": 600
-      },
-      "openrouter/mistral-7b-instruct:free": {
-        "score": 0.5,
-        "avg_latency_ms": 500.0,
-        "successful_tasks": 5,
-        "total_tokens": 600
-      },
-      "openrouter/microsoft/phi-3-mini-4k-instruct:free": {
+      "nous/poolside/laguna-s-2.1:free": {
         "score": 0.4,
         "avg_latency_ms": 600.0,
         "successful_tasks": 5,
         "total_tokens": 600
       },
-      "nous/poolside/laguna-s-2.1:free": {
+      "openrouter/qwen-2.5-coder-32b-instruct:free": {
+        "score": 0.4,
+        "avg_latency_ms": 600.0,
+        "successful_tasks": 5,
+        "total_tokens": 600
+      },
+      "nous/nemotron-3-ultra:free": {
         "score": 0.3,
         "avg_latency_ms": 700.0,
         "successful_tasks": 5,
         "total_tokens": 600
       },
-      "openrouter/qwen-2.5-coder-32b-instruct:free": {
+      "openrouter/microsoft/phi-3-mini-4k-instruct:free": {
         "score": 0.3,
         "avg_latency_ms": 700.0,
         "successful_tasks": 5,

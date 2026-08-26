@@ -15,6 +15,10 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("Markus.WebResearch")
 
+# Where research reports are appended so the dice engine's research slot
+# leaves a durable artifact (not just stdout).
+DEFAULT_ROADMAP = Path(__file__).resolve().parent / "research" / "evolutionary_loop_roadmap.md"
+
 
 class WebResearchEngine:
     """
@@ -72,11 +76,13 @@ class WebResearchEngine:
         self.cortex = cortex
         self._research_cache: Dict[str, str] = {}
 
-    def research_technical_alternative(self, topic: str, 
-                                       max_results: int = 5) -> Dict[str, Any]:
+    def research_technical_alternative(self, topic: str,
+                                       max_results: int = 5,
+                                       live_findings: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Research a technical alternative topic.
-        Uses pre-indexed knowledge + optional web search if available.
+        Uses the pre-indexed knowledge base plus optional live findings injected
+        by the orchestrating agent (e.g. from a real web_search / web_extract).
         """
         # Check cache first
         cache_key = f"research_{topic}_{int(time.time() / 300)}"  # 5-minute cache
@@ -84,28 +90,29 @@ class WebResearchEngine:
             return json.loads(self._research_cache[cache_key])
 
         findings: List[str] = []
-        
+
         # Get from knowledge base
         if topic in self.RESEARCH_KNOWLEDGE_BASE:
             findings.extend(self.RESEARCH_KNOWLEDGE_BASE[topic][:max_results])
-        
-        # Try web search if available (would integrate with actual web tools)
-        try:
-            # This would normally use web_search tool
-            pass
-        except Exception:
-            pass
+
+        # Merge live findings (real web search results fed in by the caller).
+        if live_findings:
+            for f in live_findings:
+                if f not in findings:
+                    findings.append(f)
+            findings = findings[:max_results + 3]
 
         # Generate analysis and recommendation
         analysis = self._analyze_findings(findings, topic)
-        
+
         result = {
             "topic": topic,
             "findings": findings,
+            "live_findings": bool(live_findings),
             "analysis": analysis,
             "timestamp": time.time()
         }
-        
+
         # Cache and log to cortex
         self._research_cache[cache_key] = json.dumps(result)
         if self.cortex:
@@ -114,7 +121,40 @@ class WebResearchEngine:
                 f"Researched: {topic} — {len(findings)} findings",
                 {"topic": topic, "findings_count": len(findings)}
             )
-        
+
+        return result
+
+    def write_to_roadmap(self, result: Dict[str, Any],
+                         report_path: Optional[Path] = None) -> Path:
+        """
+        Append the improvement proposal for a research result to the roadmap,
+        leaving a durable artifact. Returns the file that was written.
+        """
+        path = Path(report_path or DEFAULT_ROADMAP)
+        proposal = self.generate_improvement_proposal(result)
+        all_findings = "\n".join(f"- {f}" for f in result.get("findings", []))
+        ts = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+        block = (
+            f"\n## {ts} — Dice Research Slot: {result['topic']}\n"
+            f"Live web findings: {'yes' if result.get('live_findings') else 'no'}\n\n"
+            f"### All findings ({len(result.get('findings', []))})\n"
+            f"{all_findings}\n\n"
+            f"{proposal}\n"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(block)
+        return path
+
+    def research_and_report(self, topic: str,
+                            live_findings: Optional[List[str]] = None,
+                            report_path: Optional[Path] = None,
+                            max_results: int = 5) -> Dict[str, Any]:
+        """Research a topic and persist the proposal to the roadmap in one step."""
+        result = self.research_technical_alternative(topic, max_results=max_results,
+                                                     live_findings=live_findings)
+        written = self.write_to_roadmap(result, report_path=report_path)
+        result["report_path"] = str(written)
         return result
 
     def _analyze_findings(self, findings: List[str], topic: str) -> Dict[str, Any]:
@@ -209,30 +249,53 @@ class WebResearchEngine:
 
 
 def _test_research():
-    """Test the web research engine."""
+    """Test the web research engine, including roadmap persistence."""
+    import tempfile
     print("=== MARKUS Web Research Engine Test ===\n")
-    
+
     engine = WebResearchEngine()
-    
+
     topics = [
         "autonomous_agent_loop",
         "swarm_intelligence",
         "multi_model_routing"
     ]
-    
-    for topic in topics:
-        print(f"\n🔍 Researching: {topic}")
-        result = engine.research_technical_alternative(topic)
-        print(f"  Findings: {len(result['findings'])}")
-        print(f"  Feasibility: {result['analysis']['implementation_feasibility']['effort_estimate']}")
-        
-        proposal = engine.generate_improvement_proposal(result)
-        print(f"\n{proposal[:300]}...")
-    
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp) / "research.md"
+        for topic in topics:
+            print(f"\n🔍 Researching: {topic}")
+            # Inject fake live findings to exercise the live seam.
+            live = [f"[LIVE] Candidate approach {i} for {topic}" for i in range(1, 3)]
+            result = engine.research_and_report(topic, live_findings=live, report_path=tmp_path)
+            print(f"  Findings: {len(result['findings'])} (live={result['live_findings']})")
+            print(f"  Feasibility: {result['analysis']['implementation_feasibility']['effort_estimate']}")
+            print(f"  Persisted: {result['report_path']}")
+
+            proposal = engine.generate_improvement_proposal(result)
+            print(f"\n{proposal[:300]}...")
+
+        # Verify the roadmap file was actually written with all 3 topics.
+        written = tmp_path.read_text(encoding="utf-8")
+        for t in topics:
+            assert f"Dice Research Slot: {t}" in written, f"roadmap missing report for {t}"
+        assert written.count("Dice Research Slot:") == len(topics), "one report block per topic"
+        print(f"\n✅ Persistence verified: {len(topics)} report blocks written to roadmap")
+
     print(f"\n✅ Web Research Engine Test: PASSED")
 
 
 if __name__ == "__main__":
-    mode = "daemon" if "--daemon" in __import__("sys").argv else "single"
-    if mode == "single":
+    import sys as _sys
+    argv = _sys.argv[1:]
+    if "--report" in argv:
+        # CLI mode: research one topic and persist to the real roadmap.
+        idx = argv.index("--report")
+        topic = argv[idx + 1] if idx + 1 < len(argv) else "autonomous_agent_loop"
+        engine = WebResearchEngine()
+        result = engine.research_and_report(topic)
+        print(f"Researched '{topic}' — {len(result['findings'])} findings "
+              f"(live={result['live_findings']})")
+        print(f"Report appended to: {result['report_path']}")
+    else:
         _test_research()

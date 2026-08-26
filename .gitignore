@@ -12,3 +12,10 @@ venv/
 
 # MARKUS runtime private vault/artifacts
 markus_private/
+
+# MARKUS runtime state (regenerated every run — never commit)
+markus_adaptive_state.json
+markus_network_state.json
+.markus_network_state_hash.json
+markus_brain_cost_ledger.jsonl
+HERMES UPGRADE/cron_archive/

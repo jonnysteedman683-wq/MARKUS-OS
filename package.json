@@ -1,6 +1,6 @@
 {
   "name": "markus-os",
-  "version": "1.0.0-alpha",
+  "version": "1.0.0-alpha.1",
   "description": "MARKUS OS Autonomous Agent Command Deck",
   "main": "electron-main.js",
   "scripts": {

@@ -192,19 +192,19 @@ def _test_arbiter():
 
     cand1 = ModelCandidate(
         candidate_id="cand_nemotron",
-        model_name="openrouter/nvidia/nemotron-3-ultra:free",
+        model_name="deepseek/deepseek-v4-pro-0813",
         code="def compute_fibonacci(n: int) -> int:\n    if n <= 1: return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b\n"
     )
 
     cand2 = ModelCandidate(
         candidate_id="cand_laguna",
-        model_name="openrouter/poolside/laguna-s-2.1:free",
+        model_name="poolside/laguna-s-2.1:free",
         code="def compute_fibonacci(n: int) -> int:\n    if n < 0:\n        raise ValueError('Negative input')\n    if n <= 1:\n        return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b\n"
     )
 
     cand3 = ModelCandidate(
         candidate_id="cand_broken",
-        model_name="openrouter/ling-3.0-flash:free",
+        model_name="inclusionai/ling-3.0-flash",
         code="def compute_fibonacci(n: int) -> int\n    return n + 1\n"  # Syntax error
     )
 

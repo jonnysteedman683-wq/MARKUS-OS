@@ -16,6 +16,7 @@ import os
 import time
 import urllib.request
 import urllib.error
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -28,15 +29,99 @@ AUTH_JSON = Path(os.environ.get(
 
 INFERENCE_BASE = "https://inference-api.nousresearch.com/v1"
 
-# Router tier_category -> Nous model id (cost-aware)
+# Router tier_category -> Nous model id (cost-aware). This is the SINGLE
+# source of truth: markus_router.py imports it, so the router's reported
+# target_model always equals the model the brain actually calls.
+# Prices verified live 2026-08-26 against the Nous /models catalog:
+#   laguna-s-2.1:free      $0 / $0            (free code/default tier)
+#   deepseek-v4-pro-0813   $0.8976/M / $2.69/M (arch/planning, selectively used)
+#   ling-3.0-flash         $0.0168/M / $0.05/M (cheapest paid, telemetry)
+#   custom/qwen2.5-coder:7b  offline-only signal (never called over network)
 TIER_MODELS: Dict[str, str] = {
-    "CODE_SPECIALIST": "deepseek/deepseek-v4-flash",
+    "CODE_SPECIALIST": "poolside/laguna-s-2.1:free",
     "MEGACONTEXT_ARCH": "deepseek/deepseek-v4-pro-0813",
     "FAST_TELEMETRY": "inclusionai/ling-3.0-flash",
-    "DEFAULT_BALANCED": "deepseek/deepseek-v4-flash",
-    "OFFLINE_LOCAL": "deepseek/deepseek-v4-flash",
+    "DEFAULT_BALANCED": "poolside/laguna-s-2.1:free",
+    "OFFLINE_LOCAL": "custom/qwen2.5-coder:7b",
 }
-DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
+DEFAULT_MODEL = "poolside/laguna-s-2.1:free"
+
+# Per-token prices in USD, verified live 2026-08-26 against the Nous /models
+# catalog (prompt, completion). Free/offline models cost zero.
+#   deepseek-v4-flash   0.0000000709 / 0.0000001418
+#   deepseek-v4-pro-0813 0.0000008976 / 0.0000026928
+#   ling-3.0-flash      0.0000000168 / 0.0000000504
+#   gemini-3.7-flash    0.0000003000 / 0.0000015000
+MODEL_PRICES: Dict[str, tuple[float, float]] = {
+    "poolside/laguna-s-2.1:free": (0.0, 0.0),
+    "deepseek/deepseek-v4-flash": (0.0000000709, 0.0000001418),
+    "deepseek/deepseek-v4-pro-0813": (0.0000008976, 0.0000026928),
+    "inclusionai/ling-3.0-flash": (0.0000000168, 0.0000000504),
+    "google/gemini-3.7-flash": (0.0000003000, 0.0000015000),
+}
+COST_LEDGER = Path(os.environ.get(
+    "MARKUS_COST_LEDGER",
+    "C:/Users/jonny/OneDrive/Desktop/MARKUS-OS/markus_brain_cost_ledger.jsonl",
+))
+_ledger_lock = __import__("threading").Lock()
+
+
+def estimate_cost(
+    model: str, prompt_tokens: int, completion_tokens: int
+) -> float:
+    """Compute USD cost for a call using the per-model price table."""
+    p_prompt, p_completion = MODEL_PRICES.get(model, (0.0, 0.0))
+    return prompt_tokens * p_prompt + completion_tokens * p_completion
+
+
+def record_cost(
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    latency_ms: float,
+    tier: str = "",
+) -> float:
+    """Append one call to the JSONL cost ledger; returns USD cost."""
+    cost = estimate_cost(model, prompt_tokens, completion_tokens)
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "model": model,
+        "tier": tier,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+        "cost_usd": round(cost, 12),
+        "latency_ms": round(latency_ms, 1),
+    }
+    try:
+        COST_LEDGER.parent.mkdir(parents=True, exist_ok=True)
+        with _ledger_lock, open(COST_LEDGER, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except OSError as exc:
+        logger.error(f"Cost ledger write failed: {exc}")
+    return cost
+
+
+def cost_summary() -> dict:
+    """Read the ledger and return per-model + total cost summary."""
+    totals: Dict[str, float] = {}
+    calls = 0
+    total_cost = 0.0
+    if COST_LEDGER.exists():
+        for line in COST_LEDGER.read_text(encoding="utf-8").splitlines():
+            try:
+                e = json.loads(line)
+            except (json.JSONDecodeError, ValueError):
+                continue
+            calls += 1
+            cost = float(e.get("cost_usd", 0.0))
+            total_cost += cost
+            totals[e.get("model", "?")] = totals.get(e.get("model", "?"), 0.0) + cost
+    return {
+        "calls": calls,
+        "total_cost_usd": round(total_cost, 8),
+        "per_model": {m: round(c, 8) for m, c in totals.items()},
+    }
 
 # Cloudflare bans urllib's default UA (HTTP 403 error 1010) — send a browser UA.
 _BROWSER_UA = (
@@ -62,6 +147,7 @@ def ask_brain(
     model: Optional[str] = None,
     timeout_s: float = 60.0,
     system: str = "You are MARKUS, an autonomous AI operating system. Reply directly and concisely.",
+    tier: str = "",
 ) -> str:
     """Call the Nous inference API directly. Returns the model's reply text.
 
@@ -98,7 +184,17 @@ def ask_brain(
             data = json.loads(resp.read().decode("utf-8"))
         reply = (data.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
         used_model = data.get("model", model)
-        logger.info(f"Brain reply via {used_model} in {time.time()-t0:.1f}s")
+        elapsed = time.time() - t0
+        # c52: per-call cost accounting. Every brain call now lands in the
+        # ledger with tokens + USD, priced per-model (free tiers cost zero).
+        usage = data.get("usage") or {}
+        p_tok = int(usage.get("prompt_tokens", 0) or 0)
+        c_tok = int(usage.get("completion_tokens", 0) or 0)
+        cost = record_cost(used_model, p_tok, c_tok, elapsed * 1000.0, tier=tier)
+        logger.info(
+            f"Brain reply via {used_model} in {elapsed:.1f}s "
+            f"({p_tok}p+{c_tok}c tokens, ${cost:.8f})"
+        )
         return reply or "(brain offline: empty reply)"
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")[:200]
@@ -116,6 +212,11 @@ def route_brain_model(tier_category: str) -> str:
 
 if __name__ == "__main__":
     import sys
-    probe = sys.argv[1] if len(sys.argv) > 1 else "Reply with exactly: BRAIN_LIVE"
-    print("KEY:", "present" if load_nous_key() else "MISSING")
-    print("REPLY:", ask_brain(probe))
+    args = sys.argv[1:]
+    if args and args[0] == "--ledger":
+        print(json.dumps(cost_summary(), indent=2))
+    else:
+        probe = args[0] if args else "Reply with exactly: BRAIN_LIVE"
+        print("KEY:", "present" if load_nous_key() else "MISSING")
+        print("REPLY:", ask_brain(probe))
+        print("LEDGER:", json.dumps(cost_summary()))
