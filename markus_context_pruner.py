@@ -249,7 +249,7 @@ def _test_context_pruner() -> None:
         "Target conclusion: all subsystems active."
     ]
 
-    res = pruner.prune(sample_context, max_tokens=60, query="execute_trade error")
+    res = pruner.prune(sample_context, max_tokens=100, query="execute_trade error")
 
     print(f"Original Tokens : {res.original_tokens}")
     print(f"Pruned Tokens   : {res.pruned_tokens}")

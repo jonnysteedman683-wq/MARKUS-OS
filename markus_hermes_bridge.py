@@ -308,7 +308,7 @@ class MarkusHermesBridge:
             await asyncio.sleep(self.config.poll_interval_s)
 
 
-def _self_test() -> int:
+async def _self_test() -> int:
     """Comprehensive standalone verification test for MarkusHermesBridge."""
     print("=== MARKUS <-> HERMES Bridge Self-Test ===")
     kernel = MarkusKernel()
@@ -332,12 +332,10 @@ def _self_test() -> int:
     print(f"  [3] Offline enqueueing & count check: PASS (depth={bridge.get_pending_offline_count()})")
 
     # 4. Async dispatch with is_offline=True
-    async def _test_dispatch():
-        res = await bridge.send_to_hermes_session("Offline intent gamma", is_offline=True)
-        assert res["status"] == "QUEUED_OFFLINE", "Dispatch in offline mode must return QUEUED_OFFLINE"
-        assert res["offline"] is True, "Offline flag must be True"
-        assert bridge.get_pending_offline_count() == initial_count + 3
-    asyncio.run(_test_dispatch())
+    res = await bridge.send_to_hermes_session("Offline intent gamma", is_offline=True)
+    assert res["status"] == "QUEUED_OFFLINE", "Dispatch in offline mode must return QUEUED_OFFLINE"
+    assert res["offline"] is True, "Offline flag must be True"
+    assert bridge.get_pending_offline_count() == initial_count + 3
     print("  [4] Async send_to_hermes_session (offline mode): PASS")
 
     # 5. Flush offline queue (force mode)
@@ -350,8 +348,13 @@ def _self_test() -> int:
     return 0
 
 
+def run_self_test() -> int:
+    """Synchronous entry point for running the self-test."""
+    return asyncio.run(_self_test())
+
+
 async def start_markus_with_bridge() -> None:
-    _self_test()
+    await _self_test()
     kernel = MarkusKernel()
     bridge = MarkusHermesBridge(kernel)
     infra_info = bridge.init_private_infra()
@@ -373,3 +376,4 @@ async def start_markus_with_bridge() -> None:
 
 if __name__ == "__main__":
     asyncio.run(start_markus_with_bridge())
+
