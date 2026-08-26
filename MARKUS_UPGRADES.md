@@ -1,6 +1,6 @@
-# MARKUS OS: 10 Architectural & Capability Upgrades Roadmap
+# MARKUS OS: 11 Architectural & Capability Upgrades Roadmap
 
-This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent Operating System.
+This document outlines the 11 core upgrade paths for the MARKUS Autonomous Agent Operating System.
 
 ---
 
@@ -90,7 +90,12 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 - **Upgrade:** Embed the `CircuitBreaker` resilience pattern from `PRIME-DIRECTIVE.md` into all outbound network and tool requests.
 - **Impact:** Automatic quarantine and state rollback when external APIs or bridge routes experience cascading failures.
 
-### 10. Swarm Mesh Node Discovery Protocol
+### 10. Enhanced Dice Engine (36 Actions)
+- **Upgrade:** Extended MARKUS DICE engine from 6-sided to 36-sided dual-dice system (`markus_dice_engine.py`).
+- **Impact:** 6x upgrade diversity with specific, well-defined actions. Each dice roll (1-36) triggers a targeted upgrade instead of generic "technical alternative" actions.
+- **Verification:** Stage 5 now logs specific action (e.g., `dice_roll: 33, action: PAYDOWN_TECH_DEBT`) instead of generic dice roll 1-5.
+
+### 11. Swarm Mesh Node Discovery Protocol
 - **Upgrade:** Implement lightweight UDP broadcast discovery enabling multiple MARKUS OS instances across desktop, laptop, and server nodes to form a unified mesh.
 - **Impact:** Distributed agent swarm compute with zero-configuration clustering.
 
@@ -110,4 +115,5 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 | **#8 Harmonic Web Audio Synth** (`markus-os.html`) | **High (10/10)** | **Medium (7/10)** | Low (Browser Web Audio API) | **Complete & Live** |
 | **#9 Self-Healing Circuit Breaker** (`markus_resilience.py`) | **High (9/10)** | **Critical (9.5/10)** | Medium (Stateful backoff) | **Queued** |
 | **#10 Swarm Mesh UDP Discovery** (`markus_mesh.py`) | **Medium (7.5/10)** | **High (8.5/10)** | High (Cross-subnet UDP/LAN) | **Queued** |
+| **#11 Enhanced Dice Engine** (`markus_dice_engine.py`) | **High (10/10)** | **High (9/10)** | Medium (36-action dispatch map) | **Complete & Verified** |
 
