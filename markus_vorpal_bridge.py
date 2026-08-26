@@ -249,10 +249,12 @@ class MarkusVorpalBridge:
             last_payload = None
             for line in lines:
                 try:
-                    last_payload = json.loads(line)
+                    payload = json.loads(line)
+                    if isinstance(payload, dict):
+                        last_payload = payload
                 except Exception:
                     continue
-            if last_payload:
+            if last_payload and isinstance(last_payload, dict):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(json.dumps(last_payload, indent=2, default=str), encoding="utf-8")
             VORPAL_SPOOL_PATH.unlink(missing_ok=True)

@@ -139,7 +139,7 @@ class MarkusHermesBridge:
                         continue
                     try:
                         record = json.loads(line)
-                        if record.get("status", "QUEUED") == "QUEUED":
+                        if isinstance(record, dict) and record.get("status", "QUEUED") == "QUEUED":
                             count += 1
                     except Exception:
                         continue
@@ -200,6 +200,9 @@ class MarkusHermesBridge:
                 try:
                     record = json.loads(line)
                 except Exception:
+                    continue
+
+                if not isinstance(record, dict):
                     continue
 
                 if record.get("status") == "QUEUED" and flushed_count < max_batch:
