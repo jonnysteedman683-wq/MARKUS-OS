@@ -20,9 +20,10 @@ link into a real, state-exchanging loop:
       - adaptive-matrix weights (model routing state)
       - network-intel transport state
       - server / dice-engine health
+      - offline disk-backed telemetry spooling when VORPAL_ROOT is detached
 
 Stdlib-only, fail-open: if VORPAL is absent or unreadable, every method
-degrades to empty/None rather than raising. Never blocks on VORPAL.
+degrades to empty/None or local spool rather than raising. Never blocks on VORPAL.
 """
 from __future__ import annotations
 
@@ -30,6 +31,7 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -50,6 +52,14 @@ SOUL_PATH = Path(os.environ.get(
 # Where MARKUS writes its telemetry for VORPAL to read.
 MARKUS_LEDGER_PATH = Path(os.environ.get(
     "MARKUS_LEDGER", str(VORPAL_ROOT / "EVOLVE/MARKUS_TELEMETRY.json")))
+
+# Local offline spool buffer when VORPAL_ROOT is detached
+DEFAULT_PRIVATE_ROOT = Path(os.environ.get(
+    "MARKUS_PRIVATE_ROOT",
+    os.environ.get("HERMES_PRIVATE_ROOT", r"C:\Users\jonny\OneDrive\Desktop\New folder\markus_private")
+))
+VORPAL_SPOOL_PATH = Path(os.environ.get(
+    "VORPAL_SPOOL_PATH", str(DEFAULT_PRIVATE_ROOT / "ipc" / "vorpal_telemetry_spool.jsonl")))
 
 
 @dataclass
@@ -180,11 +190,12 @@ class MarkusVorpalBridge:
                                network_state: Optional[Dict] = None,
                                server_ok: Optional[bool] = None,
                                extra: Optional[Dict] = None) -> Optional[Path]:
-        """Persist MARKUS's live telemetry to the VORPAL ledger. Returns the
-        file written, or None if VORPAL root is absent."""
+        """Persist MARKUS's live telemetry to the VORPAL ledger.
+        When VORPAL_ROOT exists (or MARKUS_LEDGER_PATH is explicitly redirected),
+        writes MARKUS_LEDGER_PATH. When VORPAL_ROOT is absent, spools to local
+        offline buffer (e.g. markus_private/ipc/vorpal_telemetry_spool.jsonl)
+        and returns the spooled path."""
         try:
-            if not VORPAL_ROOT.exists():
-                return None
             payload = {
                 "written_at": time.time(),
                 "matrix": matrix_state or [],
@@ -192,13 +203,83 @@ class MarkusVorpalBridge:
                 "server_ok": server_ok,
                 "extra": extra or {},
             }
-            MARKUS_LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
-            MARKUS_LEDGER_PATH.write_text(
-                json.dumps(payload, indent=2, default=str), encoding="utf-8")
-            return MARKUS_LEDGER_PATH
+            # Check whether target ledger or VORPAL_ROOT exists
+            is_vorpal_available = VORPAL_ROOT.exists()
+            is_explicit_ledger = (
+                MARKUS_LEDGER_PATH.parent.exists() and
+                not str(MARKUS_LEDGER_PATH).startswith(str(VORPAL_ROOT))
+            )
+            if is_vorpal_available or is_explicit_ledger:
+                MARKUS_LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
+                MARKUS_LEDGER_PATH.write_text(
+                    json.dumps(payload, indent=2, default=str), encoding="utf-8")
+                return MARKUS_LEDGER_PATH
+            else:
+                # Spool to local offline buffer
+                VORPAL_SPOOL_PATH.parent.mkdir(parents=True, exist_ok=True)
+                with VORPAL_SPOOL_PATH.open("a", encoding="utf-8") as f:
+                    f.write(json.dumps(payload, default=str) + "\n")
+                return VORPAL_SPOOL_PATH
         except Exception as e:  # noqa: BLE001
             logger.warning("markus telemetry write failed: %s", e)
             return None
+
+    def get_spooled_telemetry_count(self) -> int:
+        """Returns the number of un-flushed spooled telemetry entries."""
+        if not VORPAL_SPOOL_PATH.exists():
+            return 0
+        try:
+            lines = [l.strip() for l in VORPAL_SPOOL_PATH.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+            return len(lines)
+        except Exception:
+            return 0
+
+    def flush_spooled_telemetry(self, target_ledger: Optional[Path] = None) -> int:
+        """Flushes local spooled telemetry records into the VORPAL ledger once available.
+        Returns the number of spooled telemetry records flushed."""
+        target = target_ledger or MARKUS_LEDGER_PATH
+        if not VORPAL_SPOOL_PATH.exists():
+            return 0
+        if not (VORPAL_ROOT.exists() or target.parent.exists()):
+            return 0
+        try:
+            lines = [l.strip() for l in VORPAL_SPOOL_PATH.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+            if not lines:
+                return 0
+            last_payload = None
+            for line in lines:
+                try:
+                    last_payload = json.loads(line)
+                except Exception:
+                    continue
+            if last_payload:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(json.dumps(last_payload, indent=2, default=str), encoding="utf-8")
+            VORPAL_SPOOL_PATH.unlink(missing_ok=True)
+            return len(lines)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("flush_spooled_telemetry failed: %s", e)
+            return 0
+
+    def sync_vorpal_to_memory(self, memory_cortex: Any) -> Dict[str, Any]:
+        """Bridge helper to set VORPAL status registers on a MARKUS MemoryCortex."""
+        st = self.read_vorpal_status()
+        summary = {
+            "goal_count": st.goal_count,
+            "open_goal_count": st.open_goal_count,
+            "implemented_goal_count": st.implemented_goal_count,
+            "goal_pulse": st.goal_pulse,
+            "recent_errors": st.recent_errors,
+            "objectives": st.objectives,
+            "cardinals": st.cardinals,
+            "parsed_at": st.parsed_at,
+        }
+        if memory_cortex and hasattr(memory_cortex, "set_register"):
+            memory_cortex.set_register("VORPAL_GOAL_PULSE", st.goal_pulse)
+            memory_cortex.set_register("VORPAL_OPEN_GOALS", st.open_goal_count)
+            memory_cortex.set_register("VORPAL_GOALS_TOTAL", st.goal_count)
+            memory_cortex.set_register("VORPAL_STATUS_SUMMARY", summary)
+        return summary
 
     # ------------------------------------------------------------------
     # Convenience: build the MARKUS telemetry payload from local modules.
@@ -246,6 +327,7 @@ class MarkusVorpalBridge:
 
 
 def _self_test() -> int:
+    global VORPAL_ROOT, MARKUS_LEDGER_PATH, VORPAL_SPOOL_PATH
     print("=== MARKUS <-> VORPAL Bridge Test ===")
     bridge = MarkusVorpalBridge()
     st = bridge.read_vorpal_status()
@@ -254,20 +336,52 @@ def _self_test() -> int:
     print(f"  recent errors: {len(st.recent_errors)}")
     print(f"  objectives: {st.objectives[:3]}")
     print(f"  cardinals: {st.cardinals}")
-    # Write telemetry to a temp ledger so we don't clobber the real one.
+
+    # 1. Write telemetry to a temp ledger so we don't clobber the real one.
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
-        # Point ledger at temp via env by re-instantiating a temp path
         tmp_ledger = Path(tmp) / "TELEMETRY.json"
-        import markus_vorpal_bridge as _b
-        _b.MARKUS_LEDGER_PATH = tmp_ledger
-        p = bridge.write_markus_telemetry(matrix_state=[{"model": "x", "w": 1.0}],
-                                          network_state={"has_internet": True},
-                                          server_ok=True)
-        assert p is not None and p.exists(), "telemetry ledger should be written"
-        loaded = json.loads(p.read_text(encoding="utf-8"))
-        assert loaded["server_ok"] is True
-        print(f"  telemetry ledger written: {p} ({len(loaded) } keys)")
+        orig_ledger = MARKUS_LEDGER_PATH
+        try:
+            MARKUS_LEDGER_PATH = tmp_ledger
+            p = bridge.write_markus_telemetry(matrix_state=[{"model": "x", "w": 1.0}],
+                                              network_state={"has_internet": True},
+                                              server_ok=True)
+            assert p is not None and p.exists(), "telemetry ledger should be written"
+            loaded = json.loads(p.read_text(encoding="utf-8"))
+            assert loaded["server_ok"] is True
+            print(f"  telemetry ledger written: {p} ({len(loaded)} keys)")
+        finally:
+            MARKUS_LEDGER_PATH = orig_ledger
+
+    # 2. Offline telemetry spooling and drainage test
+    with tempfile.TemporaryDirectory() as tmp2:
+        orig_root = VORPAL_ROOT
+        orig_ledger = MARKUS_LEDGER_PATH
+        orig_spool = VORPAL_SPOOL_PATH
+        try:
+            fake_absent_root = Path(tmp2) / "absent_vorpal"
+            VORPAL_ROOT = fake_absent_root
+            MARKUS_LEDGER_PATH = fake_absent_root / "EVOLVE" / "MARKUS_TELEMETRY.json"
+            VORPAL_SPOOL_PATH = Path(tmp2) / "ipc" / "vorpal_telemetry_spool.jsonl"
+
+            spool_p = bridge.write_markus_telemetry(matrix_state=[{"model": "offline", "w": 0.5}],
+                                                    server_ok=False)
+            assert spool_p is not None and spool_p.exists(), "spool path must exist"
+            assert bridge.get_spooled_telemetry_count() == 1, "spooled count should be 1"
+
+            # Simulate VORPAL root becoming available and flush
+            fake_absent_root.mkdir(parents=True, exist_ok=True)
+            flushed = bridge.flush_spooled_telemetry()
+            assert flushed == 1, f"expected 1 flushed, got {flushed}"
+            assert MARKUS_LEDGER_PATH.exists(), "flushed ledger should exist"
+            assert bridge.get_spooled_telemetry_count() == 0, "spooled count should be 0 after flush"
+            print("  offline telemetry spool & flush: PASS")
+        finally:
+            VORPAL_ROOT = orig_root
+            MARKUS_LEDGER_PATH = orig_ledger
+            VORPAL_SPOOL_PATH = orig_spool
+
     print("[OK] Markus-Vorpal Bridge: PASSED")
     return 0
 
