@@ -26,6 +26,12 @@
 | **LAO (NeurIPS 2024)** | Adaptive planning depth based on task complexity | Complexity estimator, depth controller, horizon adjustment |
 | **Metacognitive Control (ACL 2025)** | Monitor confidence → seek info when uncertain | Confidence estimator, uncertainty-based info gathering |
 
+## ✅ Status: Implemented
+
+- **Reflexion Loop (`markus_reflexion.py`)**: Passes self-test (`_test_reflexion`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6b).
+- **Population Dice Evolution (`markus_population_dice.py`)**: Passes self-test (`_test_population_dice`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6c).
+- **Red Team Adversarial Loop (`markus_redteam.py`)**: Passes self-test (`_test_redteam`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6d).
+
 ## 🚀 Implementation Plan (3 Priority Loops)
 
 ### 1. Reflexion Loop (markus_reflexion.py) — PRIORITY 1

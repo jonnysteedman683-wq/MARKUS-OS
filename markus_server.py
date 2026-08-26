@@ -36,6 +36,7 @@ from markus_obsidian_sync import MarkusObsidianSync
 from markus_capabilities import CapabilityRegistry
 from markus_capability_synthesizer import MarkusCapabilitySynthesizer
 from markus_thors import ThorsEngine, create_thors_tables
+from markus_ui_db import MarkusUIDatabase
 
 logger = logging.getLogger("Markus.Server")
 
@@ -44,6 +45,7 @@ def _ask_markus_brain(prompt: str, tier_category: str = "DEFAULT_BALANCED", time
     return ask_brain(prompt, model=route_brain_model(tier_category), timeout_s=timeout_s, tier=tier_category)
 # Global instances
 kernel = MarkusKernel()
+ui_db = MarkusUIDatabase()
 bridge = MarkusHermesBridge(kernel)
 bridge.init_private_infra()
 kernel.memory.set_register("OS_STATUS", "BOOTED")  # server up == OS online
@@ -134,7 +136,16 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             return
         # [END THORS]
 
-        if self.path == "/" or self.path == "/ui" or self.path == "/nexus" or self.path == "/markus_nexus.html":
+        if self.path == "/" or self.path == "/ui-os" or self.path == "/markus_ui_os.html":
+            html_path = Path(__file__).parent / "markus_ui_os.html"
+            if html_path.exists():
+                content = html_path.read_bytes()
+                self._set_headers(200, "text/html; charset=utf-8")
+                self.wfile.write(content)
+            else:
+                self._set_headers(404)
+                self.wfile.write(b"<h1>404 - markus_ui_os.html not found</h1>")
+        elif self.path == "/nexus" or self.path == "/markus_nexus.html":
             html_path = Path(__file__).parent / "markus_nexus.html"
             if html_path.exists():
                 content = html_path.read_bytes()
@@ -161,6 +172,18 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             else:
                 self._set_headers(404)
                 self.wfile.write(b"<h1>404 - markus-os.html not found</h1>")
+        elif self.path == "/api/ui/state":
+            components = [c.__dict__ for c in ui_db.list_components()]
+            unreads = [n.__dict__ for n in ui_db.get_unread_notifications()]
+            commands = ui_db.get_recent_commands(limit=10)
+            res = {
+                "status": "OK",
+                "components": components,
+                "unread_notifications": unreads,
+                "recent_commands": commands
+            }
+            self._set_headers(200)
+            self.wfile.write(json.dumps(res).encode("utf-8"))
         elif self.path == "/api/stream":
             # Server-Sent Events (SSE) Stream
             self.send_response(200)
