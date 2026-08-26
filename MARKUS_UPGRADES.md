@@ -6,6 +6,23 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 
 ## Dice Cycle Log
 
+### 2026-08-26 · Direct Upgrade → `UPGRADE_ACOUSTIC_SYNAPSE` → Harmonic Web Audio Live
+- **Outcome:** Upgrade #8 shipped in the Command Deck (`markus-os.html`).
+  - **New acoustic profiles:** `BOOT`, `RUNNING`, `BLOCKED`, `TERMINATED`, `FAILED` added
+    alongside `DISPATCH`/`SUCCESS`/`PULSE`/`ERROR` — every kernel `ProcessState` now has a
+    distinct chord (frequencies mirror backend `markus_acoustic_synapse.py` presets).
+  - **Audible process transitions:** the 3s telemetry poller diffs per-PID state and fires
+    `playStateChime()` on any change — process lifecycle is now sonified, not just rendered.
+  - **Silent SSE made audible:** `handshake` plays a PULSE; `intent` broadcast plays DISPATCH.
+  - **Dead `ERROR` profile now used:** server-unreachable fallback fires the sawtooth dissonance.
+  - **Mute toggle:** `ACOUSTICS: SOUND ON / MUTED` pill in the system-stats HUD (was unclickable —
+    `.hud` had `pointer-events: none`, now overridden on `.system-stats`).
+  - **Autoplay-policy boot chime:** first `pointerdown` resumes `AudioContext` + plays BOOT chord.
+- **Verification:** JS extracted + `node --check` OK · live render in preview pane confirms the
+  toggle row + SSE handshake state (`STREAMING (LIVE)` / `ACOUSTICS: SOUND ON`) · server untouched.
+
+---
+
 ### 2026-08-26 · Direct Upgrade → `UPGRADE_OBSIDIAN_PALACE` → Obsidian Palace Bridge Live
 - **Outcome:** Upgrade #7 wired into the running OS end-to-end.
   - **Vault retarget:** sync now writes to the live `Documents/VORPAL Vault/Journal/Markus/`
@@ -88,7 +105,7 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 | **#5 Multi-Model Intent Router** (`markus_router.py`) | **High (10/10)** | **High (8.5/10)** | Low (Heuristic Regex Triage) | **Complete & Verified** |
 | **#6 Bidirectional Kanban Worker** (`markus_kanban_worker.py`) | **High (10/10)** | **Critical (9/10)** | Medium (SQLite claim locks) | **Complete & Verified** |
 | **#7 Obsidian Palace Sync** (`markus_obsidian_sync.py`) | **High (10/10)** | **High (8/10)** | Low (Vault markdown writer) | **Complete & Live** |
-| **#8 Harmonic Web Audio Synth** (`markus-os.html`) | **High (10/10)** | **Medium (7/10)** | Low (Browser Web Audio API) | **Next Queue** |
+| **#8 Harmonic Web Audio Synth** (`markus-os.html`) | **High (10/10)** | **Medium (7/10)** | Low (Browser Web Audio API) | **Complete & Live** |
 | **#9 Self-Healing Circuit Breaker** (`markus_resilience.py`) | **High (9/10)** | **Critical (9.5/10)** | Medium (Stateful backoff) | **Queued** |
 | **#10 Swarm Mesh UDP Discovery** (`markus_mesh.py`) | **Medium (7.5/10)** | **High (8.5/10)** | High (Cross-subnet UDP/LAN) | **Queued** |
 

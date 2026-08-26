@@ -105,6 +105,23 @@
 
   .system-stats span.active { color: var(--emerald); font-weight: 600; }
   .system-stats span.warn { color: var(--amber); }
+  .system-stats { pointer-events: auto; }
+
+  .sound-toggle {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 10px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--cyan);
+    border: 1px solid var(--border-dim);
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    background: rgba(0, 240, 255, 0.06);
+  }
+  .sound-toggle:hover { border-color: var(--border-glow); }
+  .sound-toggle.off { color: var(--dim); opacity: 0.6; }
 
   /* Bottom Left: Process Table & Memory Cortex Monitor */
   .cortex-panel {
@@ -265,6 +282,7 @@
   <div>MEMORY CORTEX: <span class="active" id="memoryStatus">3-TIER SYNCED</span></div>
   <div>DICE ENGINE: <span class="active" id="diceStatus" style="color:var(--cyan);">ROLL: [6, 1] UI</span></div>
   <div>DAG PIPELINE: <span class="active" id="dagStatus" style="color:var(--emerald);">READY</span></div>
+  <div>ACOUSTICS: <span class="sound-toggle" id="soundToggle">SOUND ON</span></div>
 </div>
 
 <!-- Center Orb Status -->
@@ -460,8 +478,14 @@
   // Multi-Tone Harmonic Web Audio Synapse Suite (Upgrade 8)
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   
-  // Harmonic Sound Profiles
+  // Harmonic Sound Profiles (Upgrade 8)
   const AUDIO_PROFILES = {
+    BOOT: [
+      { freq: 261.63, type: "sine", gain: 0.07, duration: 0.20 },
+      { freq: 329.63, type: "sine", gain: 0.05, duration: 0.25 },
+      { freq: 392.00, type: "triangle", gain: 0.04, duration: 0.30 },
+      { freq: 523.25, type: "triangle", gain: 0.03, duration: 0.40 }
+    ],
     DISPATCH: [
       { freq: 440, type: "sine", gain: 0.08, duration: 0.18 },
       { freq: 659.25, type: "triangle", gain: 0.04, duration: 0.22 }
@@ -478,11 +502,47 @@
     ERROR: [
       { freq: 185.00, type: "sawtooth", gain: 0.09, duration: 0.25 },
       { freq: 138.59, type: "sawtooth", gain: 0.07, duration: 0.30 }
+    ],
+    RUNNING: [
+      { freq: 246.94, type: "sine", gain: 0.05, duration: 0.12 },
+      { freq: 329.63, type: "sine", gain: 0.04, duration: 0.16 }
+    ],
+    BLOCKED: [
+      { freq: 220.00, type: "triangle", gain: 0.05, duration: 0.18 },
+      { freq: 277.18, type: "triangle", gain: 0.04, duration: 0.22 }
+    ],
+    TERMINATED: [
+      { freq: 293.66, type: "sine", gain: 0.04, duration: 0.20 },
+      { freq: 196.00, type: "sine", gain: 0.04, duration: 0.30 }
+    ],
+    FAILED: [
+      { freq: 185.00, type: "sawtooth", gain: 0.07, duration: 0.22 },
+      { freq: 116.54, type: "sawtooth", gain: 0.06, duration: 0.32 }
     ]
   };
 
+  let soundEnabled = true;
+  const soundToggle = document.getElementById("soundToggle");
+  if (soundToggle) {
+    soundToggle.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundToggle.textContent = soundEnabled ? "SOUND ON" : "MUTED";
+      soundToggle.classList.toggle("off", !soundEnabled);
+      if (soundEnabled && audioCtx.state === "suspended") audioCtx.resume();
+    });
+  }
+
+  // Autoplay policies need a user gesture before audio starts — boot chime on first interaction
+  const kickstartAudio = () => {
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    playHarmonicChime(AUDIO_PROFILES.BOOT);
+    window.removeEventListener("pointerdown", kickstartAudio);
+  };
+  window.addEventListener("pointerdown", kickstartAudio);
+
   function playHarmonicChime(profile = AUDIO_PROFILES.DISPATCH) {
     try {
+      if (!soundEnabled) return;
       if (audioCtx.state === 'suspended') audioCtx.resume();
       const now = audioCtx.currentTime;
       profile.forEach(p => {
@@ -500,6 +560,12 @@
     } catch (e) { /* audio fallback */ }
   }
 
+  // Map kernel ProcessState -> acoustic profile so process transitions are audible
+  function playStateChime(state) {
+    const map = { RUNNING: "RUNNING", BLOCKED: "BLOCKED", TERMINATED: "TERMINATED", FAILED: "FAILED" };
+    if (map[state]) playHarmonicChime(AUDIO_PROFILES[map[state]]);
+  }
+
   // Real-Time Server-Sent Events (SSE) Stream Integration
   function initSSETelemetry() {
     try {
@@ -507,6 +573,7 @@
       eventSource.addEventListener("handshake", (e) => {
         document.getElementById("kernelStatus").textContent = "STREAMING (LIVE)";
         document.getElementById("kernelStatus").style.color = "var(--emerald)";
+        playHarmonicChime(AUDIO_PROFILES.PULSE);
       });
       eventSource.addEventListener("intent", (e) => {
         const d = JSON.parse(e.data);
@@ -516,6 +583,7 @@
         terminalOutput.appendChild(liveLog);
         terminalOutput.scrollTop = terminalOutput.scrollHeight;
         targetPulse = 1.8;
+        playHarmonicChime(AUDIO_PROFILES.DISPATCH);
       });
       eventSource.onerror = () => {
         document.getElementById("kernelStatus").textContent = "ACTIVE (POLLING)";
@@ -525,6 +593,7 @@
   initSSETelemetry();
 
   // Poll live telemetry from markus_server.py if online
+  let lastProcessStates = {};
   async function pollKernelTelemetry() {
     try {
       const res = await fetch("http://localhost:8128/api/status");
@@ -547,6 +616,10 @@
       if (data.processes && data.processes.length > 0) {
         pList.innerHTML = "";
         data.processes.forEach(p => {
+          if (lastProcessStates[p.pid] && lastProcessStates[p.pid] !== p.state) {
+            playStateChime(p.state);
+          }
+          lastProcessStates[p.pid] = p.state;
           const div = document.createElement("div");
           div.className = "process-item";
           div.innerHTML = `<span><span class="pid">${p.pid}</span> ${p.name}</span><span style="color:var(--emerald);">${p.state}</span>`;
@@ -609,7 +682,7 @@
       responseLog.className = "log-line log-markus";
       responseLog.textContent = `[MARKUS] Dispatched intent '${val}' to Private Kernel. Memory Cortex state updated.`;
       terminalOutput.appendChild(responseLog);
-      playHarmonicChime(AUDIO_PROFILES.PULSE);
+      playHarmonicChime(AUDIO_PROFILES.ERROR);
     }
 
     terminalOutput.scrollTop = terminalOutput.scrollHeight;
