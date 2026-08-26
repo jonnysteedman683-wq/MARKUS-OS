@@ -163,11 +163,84 @@ class MarkusObsidianSync:
             "timestamp": time.time(),
         }
 
+    # ----------------------------------------------- interactive canvas graph
+    def generate_canvas_graph(self) -> Dict[str, Any]:
+        """Generate an interactive Obsidian Canvas (.canvas) knowledge graph map
+        visualizing system components, active cortex thoughts, and VORPAL goals.
+        """
+        canvas_file = self.markus_journal_dir / "MARKUS-OS-KNOWLEDGE-GRAPH.canvas"
+
+        thoughts = self.db.get_recent_thoughts(limit=10)
+        os_status = self.db.get_register("OS_STATUS", "ACTIVE")
+
+        nodes = []
+        edges = []
+
+        # Central Kernel Node
+        nodes.append({
+            "id": "node_kernel",
+            "type": "text",
+            "text": f"# 🧠 MARKUS OS Kernel\n- **Status:** `{os_status}`\n- **Vault:** `VORPAL Vault`",
+            "x": 0, "y": 0, "width": 300, "height": 160, "color": "1"
+        })
+
+        # Subsystem Nodes
+        subsystems = [
+            ("node_router", "⚡ Zero-Cost Router", "markus_router.py\nRoutes to free-tier & local Ollama", -400, -200, "2"),
+            ("node_vorpal", "🎯 VORPAL Goal DAG", "markus_vorpal_bridge.py\n35 North Star Goals (26 done)", 400, -200, "3"),
+            ("node_cortex", "💾 L3 Cortex DB", "markus_db.py\nSQLite FTS5 Persistent Memory", -400, 200, "4"),
+            ("node_ui", "🖥️ Cyberpunk UI OS", "markus_ui_os.html\nLive SSE Stream & Web Audio", 400, 200, "5"),
+            ("node_hermes", "🛠️ HERMES Task Engine", "markus_kanban_worker.py\nKanban Task Execution Bridge", 0, -350, "6"),
+        ]
+
+        for sub_id, title, desc, x, y, color in subsystems:
+            nodes.append({
+                "id": sub_id,
+                "type": "text",
+                "text": f"### {title}\n{desc}",
+                "x": x, "y": y, "width": 280, "height": 140, "color": color
+            })
+            edges.append({
+                "id": f"edge_kernel_{sub_id}",
+                "fromNode": "node_kernel", "fromSide": "top" if y < 0 else "bottom",
+                "toNode": sub_id, "toSide": "bottom" if y < 0 else "top"
+            })
+
+        # Recent Thought Nodes
+        y_offset = 450
+        for i, t in enumerate(thoughts[:5]):
+            t_id = f"node_thought_{i}"
+            clean_text = t["content"].replace("\n", " ")[:120]
+            nodes.append({
+                "id": t_id,
+                "type": "text",
+                "text": f"**Thought #{t['entry_id']}** (`{t['agent']}`)\n{clean_text}",
+                "x": (i - 2) * 320, "y": y_offset, "width": 280, "height": 130
+            })
+            edges.append({
+                "id": f"edge_cortex_{t_id}",
+                "fromNode": "node_cortex",
+                "toNode": t_id
+            })
+
+        canvas_data = {"nodes": nodes, "edges": edges}
+        canvas_file.write_text(json.dumps(canvas_data, indent=2), encoding="utf-8")
+        logger.info(f"Generated Obsidian Canvas graph: {canvas_file}")
+
+        return {
+            "status": "CANVAS_GENERATED",
+            "target_file": str(canvas_file),
+            "node_count": len(nodes),
+            "edge_count": len(edges),
+            "timestamp": time.time()
+        }
+
 
 if __name__ == "__main__":
     syncer = MarkusObsidianSync()
     res = syncer.sync_daily_digest()
     live = syncer.append_new_thoughts()
+    canvas = syncer.generate_canvas_graph()
     print("=== MARKUS Obsidian Palace Sync Result ===")
-    print(json.dumps({"digest": res, "live": live}, indent=2))
+    print(json.dumps({"digest": res, "live": live, "canvas": canvas}, indent=2))
     print(f"Vault: {syncer.vault_path}")
