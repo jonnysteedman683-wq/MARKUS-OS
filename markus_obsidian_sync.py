@@ -27,10 +27,28 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from markus_db import PersistentCortexDB
+from markus_vorpal_bridge import MarkusVorpalBridge
 
 logger = logging.getLogger("Markus.ObsidianSync")
 
 WATERMARK_KEY = "VAULT_SYNC_LAST_TS"
+
+# The shared cortex DB's OS_STATUS register can be clobbered to "HALTED" by a
+# stale markus_server instance shutting down after the live server booted.
+# The vault must reflect the *live* kernel state, so probe the running server
+# first and fall back to the register only when nothing answers.
+SERVER_STATUS_URL = "http://localhost:8128/api/status"
+
+
+def _live_kernel_status(fallback: str = "UNKNOWN") -> str:
+    """Return the live kernel_state from the running server, else `fallback`."""
+    try:
+        import urllib.request
+        with urllib.request.urlopen(SERVER_STATUS_URL, timeout=2.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("kernel_state") or fallback
+    except Exception:  # noqa: BLE001 — server down or not reachable
+        return fallback
 
 
 def _resolve_vault_path() -> Path:
@@ -68,11 +86,13 @@ class MarkusObsidianSync:
         registers = self.db.get_register("OS_STATUS", "ACTIVE")
         boot_count = self.db.get_register("OS_BOOT_COUNT", 1)
 
+        # Prefer the live kernel state; the DB register can lag behind reality.
+        live_status = _live_kernel_status(fallback=registers)
         lines = [
             f"# MARKUS OS Memory Cortex Digest — {date_str}",
             "",
             f"- **Generated At:** `{now_dt.isoformat()}`",
-            f"- **Kernel Status:** `{registers}`",
+            f"- **Kernel Status:** `{live_status}`",
             f"- **Boot Count:** `{boot_count}`",
             f"- **Synchronized Entries:** `{len(thoughts)}`",
             "",
@@ -171,7 +191,15 @@ class MarkusObsidianSync:
         canvas_file = self.markus_journal_dir / "MARKUS-OS-KNOWLEDGE-GRAPH.canvas"
 
         thoughts = self.db.get_recent_thoughts(limit=10)
-        os_status = self.db.get_register("OS_STATUS", "ACTIVE")
+        os_status = _live_kernel_status(fallback=self.db.get_register("OS_STATUS", "ACTIVE"))
+        goal_count = open_ct = impl_ct = 0
+        try:
+            vorpal_st = MarkusVorpalBridge().read_vorpal_status()
+            goal_count, open_ct, impl_ct = (vorpal_st.goal_count,
+                                            vorpal_st.open_goal_count,
+                                            vorpal_st.implemented_goal_count)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("vorpal status unavailable for canvas: %s", exc)
 
         nodes = []
         edges = []
@@ -187,7 +215,7 @@ class MarkusObsidianSync:
         # Subsystem Nodes
         subsystems = [
             ("node_router", "⚡ Zero-Cost Router", "markus_router.py\nRoutes to free-tier & local Ollama", -400, -200, "2"),
-            ("node_vorpal", "🎯 VORPAL Goal DAG", "markus_vorpal_bridge.py\n35 North Star Goals (26 done)", 400, -200, "3"),
+            ("node_vorpal", "🎯 VORPAL Goal DAG", f"markus_vorpal_bridge.py\n{goal_count} North Star Goals ({impl_ct} done, {open_ct} open)", 400, -200, "3"),
             ("node_cortex", "💾 L3 Cortex DB", "markus_db.py\nSQLite FTS5 Persistent Memory", -400, 200, "4"),
             ("node_ui", "🖥️ Cyberpunk UI OS", "markus_ui_os.html\nLive SSE Stream & Web Audio", 400, 200, "5"),
             ("node_hermes", "🛠️ HERMES Task Engine", "markus_kanban_worker.py\nKanban Task Execution Bridge", 0, -350, "6"),
