@@ -282,3 +282,22 @@ Low
 - HERMES 7: Dice Panel plugin updated to Triad Dice Engine (18-slot). node --check PASS.
 - Bridge telemetry refreshed -> VORPAL/EVOLVE/MARKUS_TELEMETRY.json.
 - Rewards: 7=1.0, 3=1.0, 14=1.0 (VORPAL slot first reward). skill v2.0.2.
+
+## 2026-08-27T19:35:20+10:00 — mode=triad
+- Coin gate: PASS
+- Lead system: MARKUS
+- HERMES slot 12: DOUBLE_REROLL -> 2 extra dice
+- HERMES slot 8: UPGRADE_HERMES_BACKEND
+    target: hermes config CLI: providers, models, gateway, MCP (setup_mcp), cron (cronjob)
+    next: Load hermes-agent skill; hermes config set ...; audit MCP servers; review cron jobs
+- HERMES slot 11: RESEARCH_HERMES_ROADMAP
+    target: hermes docs https://hermes-agent.nousresearch.com/docs + web_search -> DICE_ROADMAP.md
+    next: Read hermes-agent skill + docs; web_search new capabilities; append findings to DICE_ROADMAP.md
+- MARKUS slot 1: UPGRADE_MARKUS_UI
+    target: markus_chat.html, markus-os.html, the-orb.html, memory-palace.html, hack-console.html
+    next: Edit the listed HTML under Desktop/MARKUS-OS; smoke-test via python launch_markus_app.py
+- VORPAL slot 16: OPTIMISE_VORPAL_PROCESS
+    target: Desktop/VORPAL: EVOLVE/GOALS/GOALS.md, EVOLVE/NOTES.md, registry.json, cost ledger
+    next: Audit GOALS/NOTES/registry for stale or false claims; fix; commit
+- Curation die: DEEP — Run CURATE + ENHANCE + OPTIMISE (the extra chance).
+- Status: EXECUTED (log this cycle in DICE_ROADMAP.md)
