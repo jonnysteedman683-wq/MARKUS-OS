@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import queue
 import threading
 import time
@@ -39,6 +40,7 @@ from markus_thors import ThorsEngine, create_thors_tables
 from markus_ui_db import MarkusUIDatabase
 from markus_resilience import CircuitBreakerManager
 from markus_co_evolution import CoEvolutionOrchestrator
+from markus_run_ledger import RunLedger, RunLedgerError
 
 logger = logging.getLogger("Markus.Server")
 
@@ -78,6 +80,8 @@ active_dags: Dict[str, TaskDAG] = {
 # Public aliases for SSE infrastructure
 sse_subscribers: List[queue.Queue] = []
 sse_lock = threading.Lock()
+RUN_LEDGER_PATH = Path(os.environ.get("MARKUS_RUN_LEDGER", str(Path(__file__).parent / "markus_private" / "vault" / "markus_runs.db")))
+run_ledger = RunLedger(RUN_LEDGER_PATH)
 
 def broadcast_sse_event(event_type: str, data: Dict[str, Any]) -> None:
     payload = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
@@ -395,6 +399,14 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             self._set_headers(200)
             self.wfile.write(json.dumps(res).encode("utf-8"))
 
+        elif self.path.startswith("/api/runs/"):
+            run_id = self.path.split("/api/runs/", 1)[1].split("?", 1)[0]
+            try:
+                self._set_headers(200)
+                self.wfile.write(json.dumps(run_ledger.trace(run_id)).encode("utf-8"))
+            except RunLedgerError as exc:
+                self._set_headers(404)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
         elif self.path == "/api/health" or self.path == "/api/status":
             procs = [
                 {"pid": p.pid, "name": p.name, "state": p.state.value, "priority": p.priority.name}
