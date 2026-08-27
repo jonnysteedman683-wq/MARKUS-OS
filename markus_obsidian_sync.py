@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -192,6 +193,41 @@ class MarkusObsidianSync:
         }
 
     # ----------------------------------------------- interactive canvas graph
+    def _parse_goal_nodes(self) -> List[Dict[str, Any]]:
+        """Parse GOALS.md into lightweight goal nodes (id, phase, label, done).
+
+        Reuses MarkusVorpalBridge's regex so the canvas always shows the same
+        33 goals the pulse counter sees — no drift between dashboard + graph.
+        """
+        try:
+            import markus_vorpal_bridge as _vb
+            if not _vb.GOALS_PATH.exists():
+                return []
+            text = _vb.GOALS_PATH.read_text(encoding="utf-8", errors="replace")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("goal nodes unavailable: %s", exc)
+            return []
+
+        nodes = []
+        phase = "UNCATEGORISED"
+        for line in text.splitlines():
+            if line.startswith("## "):
+                phase = line[3:].strip()
+                continue
+            if MarkusVorpalBridge._is_goal_title(line):
+                m = re.search(r"GOAL_(\d+)\.(\d+)\s*:\*\*\s*(.+)", line)
+                title = m.group(3).strip() if m else line
+                if len(title) > 60:
+                    title = title[:57] + "…"
+                done = "[x]" in line.lower() or "COMPLETE" in line.upper()
+                nodes.append({
+                    "id": f"node_goal_{len(nodes)}",
+                    "phase": phase,
+                    "label": title,
+                    "done": done,
+                })
+        return nodes
+
     def generate_canvas_graph(self) -> Dict[str, Any]:
         """Generate an interactive Obsidian Canvas (.canvas) knowledge graph map
         visualizing system components, active cortex thoughts, and VORPAL goals.
@@ -242,6 +278,29 @@ class MarkusObsidianSync:
                 "toNode": sub_id, "toSide": "bottom" if y < 0 else "top"
             })
 
+        # Goal DAG nodes — one row per phase, color-coded done/open.
+        goal_nodes = self._parse_goal_nodes()
+        if goal_nodes:
+            # place each goal in a 4-column grid below the subsystems
+            y_goal = 620
+            for idx, g in enumerate(goal_nodes):
+                col = idx % 4
+                row_in_col = idx // 4
+                x = -960 + col * 480
+                y = y_goal + row_in_col * 120
+                nodes.append({
+                    "id": g["id"],
+                    "type": "text",
+                    "text": f"**{'✅' if g['done'] else '⬜'} {g['label']}**\n`{g['phase']}`",
+                    "x": x, "y": y, "width": 430, "height": 90,
+                    "color": "3" if g["done"] else "6",
+                })
+                edges.append({
+                    "id": f"edge_dag_{g['id']}",
+                    "fromNode": "node_vorpal",
+                    "toNode": g["id"],
+                })
+
         # Recent Thought Nodes
         y_offset = 450
         for i, t in enumerate(thoughts[:5]):
@@ -268,6 +327,7 @@ class MarkusObsidianSync:
             "target_file": str(canvas_file),
             "node_count": len(nodes),
             "edge_count": len(edges),
+            "goal_nodes": len(goal_nodes),
             "timestamp": time.time()
         }
 
@@ -385,18 +445,126 @@ class MarkusObsidianSync:
             return False
 
     # ---------------------------------------------------- full pipeline
+    def generate_weekly_rollup(self) -> Dict[str, Any]:
+        """Roll up the current ISO week's cortex thoughts into
+        Journal/Markus/Weekly/YYYY-Www.md (regenerated on each sync, so it is
+        a live week view rather than an append-only log)."""
+        now_dt = datetime.now(timezone.utc)
+        iso = now_dt.isocalendar()
+        week_dir = self.markus_journal_dir / "Weekly"
+        week_dir.mkdir(parents=True, exist_ok=True)
+        week_file = week_dir / f"{now_dt.year}-W{iso.week:02d}.md"
+
+        thoughts = self.db.get_recent_thoughts(limit=500)
+        # filter to this ISO week
+        week_start = iso.week
+        in_week = []
+        for t in thoughts:
+            dt = datetime.fromtimestamp(t["created_at"], tz=timezone.utc)
+            if dt.isocalendar().week == week_start and dt.year == now_dt.year:
+                in_week.append(t)
+
+        agents: Dict[str, int] = {}
+        for t in in_week:
+            agents[t["agent"]] = agents.get(t["agent"], 0) + 1
+        top_agents = sorted(agents.items(), key=lambda kv: kv[1], reverse=True)[:10]
+
+        lines = [
+            f"# MARKUS Weekly Rollup — {now_dt.year}-W{iso.week:02d}",
+            "",
+            f"- **Generated At:** `{now_dt.isoformat()}`",
+            f"- **Thoughts this week:** `{len(in_week)}`",
+            "",
+            "## Agent activity",
+            "",
+            "| Agent | Thoughts |",
+            "|---|---|",
+        ]
+        for agent, count in top_agents:
+            lines.append(f"| `{agent}` | {count} |")
+
+        lines.extend([
+            "",
+            "## Latest thoughts this week",
+            "",
+            "| Time (UTC) | Agent | Thought |",
+            "|---|---|---|",
+        ])
+        for t in in_week[-25:]:
+            ts = datetime.fromtimestamp(t["created_at"], tz=timezone.utc).strftime("%m-%d %H:%M")
+            clean_content = t["content"].replace("|", "\\|").replace("\n", " ")[:90]
+            lines.append(f"| {ts} | `{t['agent']}` | {clean_content} |")
+
+        lines.extend(["", "---", "*Rollup regenerated by MARKUS OS Obsidian Palace Bridge.*"])
+        week_file.write_text("\n".join(lines), encoding="utf-8")
+        logger.info(f"Regenerated weekly rollup: {week_file}")
+
+        return {
+            "status": "WEEKLY_ROLLUP",
+            "target_file": str(week_file),
+            "thoughts_in_week": len(in_week),
+            "timestamp": time.time(),
+        }
+
+    def generate_monthly_dag_snapshot(self) -> Dict[str, Any]:
+        """Snapshot the VORPAL goal DAG into Journal/Markus/Monthly/YYYY-MM.md
+        so the month-end state is preserved even as the live DAG evolves."""
+        now_dt = datetime.now(timezone.utc)
+        month_dir = self.markus_journal_dir / "Monthly"
+        month_dir.mkdir(parents=True, exist_ok=True)
+        month_file = month_dir / f"{now_dt.year}-{now_dt.month:02d}.md"
+
+        goal_count = open_ct = impl_ct = 0
+        goal_nodes: List[Dict[str, Any]] = []
+        try:
+            vorpal_st = MarkusVorpalBridge().read_vorpal_status()
+            goal_count, open_ct, impl_ct = (vorpal_st.goal_count,
+                                            vorpal_st.open_goal_count,
+                                            vorpal_st.implemented_goal_count)
+            goal_nodes = self._parse_goal_nodes()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("vorpal status unavailable for monthly snapshot: %s", exc)
+
+        lines = [
+            f"# VORPAL Goal DAG Snapshot — {now_dt.year}-{now_dt.month:02d}",
+            "",
+            f"- **Captured At:** `{now_dt.isoformat()}`",
+            f"- **Goals:** `{goal_count}` total · `{impl_ct}` implemented · `{open_ct}` open",
+            "",
+            "## DAG",
+            "",
+        ]
+        for g in goal_nodes:
+            marker = "✅" if g["done"] else "⬜"
+            lines.append(f"- {marker} `{g['phase']}` — {g['label']}")
+
+        lines.extend(["", "---", "*Snapshot preserved by MARKUS OS Obsidian Palace Bridge.*"])
+        month_file.write_text("\n".join(lines), encoding="utf-8")
+        logger.info(f"Generated monthly DAG snapshot: {month_file}")
+
+        return {
+            "status": "MONTHLY_SNAPSHOT",
+            "target_file": str(month_file),
+            "goal_count": goal_count,
+            "timestamp": time.time(),
+        }
+
     def sync_all(self) -> Dict[str, Any]:
         """Run the complete vault pipeline: digest + live + canvas + deck + commit."""
         digest = self.sync_daily_digest()
         live = self.append_new_thoughts()
         canvas = self.generate_canvas_graph()
         dashboard = self.generate_dashboard()
+        weekly = self.generate_weekly_rollup()
+        monthly = self.generate_monthly_dag_snapshot()
         committed = self._git_commit(f"sync(vault): {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
         return {
             "digest": digest,
             "live": live,
             "canvas": canvas,
             "dashboard": dashboard,
+            "weekly": weekly,
+            "monthly": monthly,
             "committed": committed,
         }
 
