@@ -399,6 +399,14 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             self._set_headers(200)
             self.wfile.write(json.dumps(res).encode("utf-8"))
 
+        elif self.path == "/trace" or self.path == "/markus-trace.html":
+            html_path = Path(__file__).parent / "markus_trace.html"
+            if html_path.exists():
+                self._set_headers(200, "text/html; charset=utf-8")
+                self.wfile.write(html_path.read_bytes())
+            else:
+                self._set_headers(404)
+                self.wfile.write(b"<h1>404 - trace page not found</h1>")
         elif self.path.startswith("/api/runs/"):
             run_id = self.path.split("/api/runs/", 1)[1].split("?", 1)[0]
             try:
@@ -443,11 +451,40 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             return
         # [END THORS]
 
-        if self.path == "/api/intent":
+        if self.path == "/api/runs":
+            try:
+                data = json.loads(body) if body else {}
+                run = run_ledger.create_run(goal_id=data.get("goal_id"), mode=data.get("mode", "FIELD"),
+                                            provider=data.get("provider"), model=data.get("model"),
+                                            input_hash=data.get("input_hash"), run_id=data.get("run_id"))
+                run_ledger.checkpoint(run.run_id, "created", {"source": "api"})
+                self._set_headers(201)
+                self.wfile.write(json.dumps({"run": run_ledger.trace(run.run_id)}).encode("utf-8"))
+            except (RunLedgerError, ValueError, TypeError) as exc:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+
+        elif self.path.startswith("/api/runs/") and self.path.endswith("/transition"):
+            try:
+                data = json.loads(body) if body else {}
+                run_id = self.path.split("/api/runs/", 1)[1].rsplit("/transition", 1)[0]
+                updated = run_ledger.transition(run_id, str(data["status"]), payload=data.get("payload"),
+                                                idempotency_key=data.get("idempotency_key"))
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"run": run_ledger.trace(updated.run_id)}).encode("utf-8"))
+            except (RunLedgerError, KeyError, ValueError, TypeError) as exc:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+
+        elif self.path == "/api/intent":
             # body already read by Thors security gate above
+            run = None
             try:
                 data = json.loads(body) if body else {}
                 prompt = data.get("prompt", "")
+                run = run_ledger.create_run(goal_id=data.get("goal_id"), mode=data.get("mode", "FIELD"))
+                run_ledger.transition(run.run_id, "ROUTED", payload={"prompt": prompt}, idempotency_key="route")
+                run_ledger.checkpoint(run.run_id, "intent-received", {"prompt": prompt})
 
                 # Commit thought to kernel
                 kernel.memory.commit_thought(
@@ -481,6 +518,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 # Route intent and build response
                 _t0 = time.time()
                 routed = router.route_intent(prompt)
+                run_ledger.transition(run.run_id, "RUNNING", payload={"tier": routed.tier_category, "model": routed.target_model}, idempotency_key="running")
                 response_text = _ask_markus_brain(prompt, tier_category=routed.tier_category)
                 _latency_ms = round((time.time() - _t0) * 1000.0, 1)
                 # Feed post-dispatch telemetry back into the adaptive matrix so
@@ -511,13 +549,23 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                         "matrix_advisory": routed.matrix_model,
                         "matrix_weight": routed.matrix_weight,
                         "network_down": routed.network_down
-                    }
+                    },
+                    "run_id": run.run_id
                 }
+                run_ledger.transition(run.run_id, "VERIFYING", payload={"response_present": bool(response_text)}, idempotency_key="verifying")
+                run_ledger.transition(run.run_id, "PASSED" if response_text else "FAILED", payload={"latency_ms": _latency_ms}, idempotency_key="complete")
                 self._set_headers(200)
                 self.wfile.write(json.dumps(res).encode("utf-8"))
             except Exception as exc:
+                if run is not None:
+                    try:
+                        current = run_ledger.get_run(run.run_id)
+                        if current and current.status not in {"PASSED", "FAILED", "REJECTED", "COMMITTED", "SYNCED"}:
+                            run_ledger.transition(run.run_id, "FAILED", payload={"error": str(exc)}, idempotency_key="error")
+                    except RunLedgerError:
+                        pass
                 self._set_headers(500)
-                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+                self.wfile.write(json.dumps({"error": str(exc), "run_id": run.run_id if run else None}).encode("utf-8"))
 
         elif self.path == "/api/sandbox/eval":
             body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)

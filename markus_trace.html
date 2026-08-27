@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8"><title>MARKUS Run Trace</title>
+<style>body{font:14px system-ui;background:#10141c;color:#e8edf5;margin:2rem}code,pre{white-space:pre-wrap}a{color:#8bd5ff}.event{border-left:2px solid #59d98e;padding:.4rem 1rem;margin:.5rem 0}</style>
+<h1>MARKUS Run Trace</h1><p id="state">Loading…</p><main id="events"></main>
+<script>
+const id=new URLSearchParams(location.search).get('run_id');
+const state=document.querySelector('#state'), events=document.querySelector('#events');
+if(!id){state.textContent='Supply ?run_id=…';}
+else fetch('/api/runs/'+encodeURIComponent(id)).then(r=>r.json()).then(d=>{
+ state.textContent=`${d.run.run_id} · ${d.run.status} · checkpoint: ${d.run.checkpoint||'none'}`;
+ events.textContent='';
+d.events.forEach(e=>{const box=document.createElement('div');box.className='event';const title=document.createElement('b');title.textContent=`${e.sequence}. ${e.event_type}`;const time=document.createElement('small');time.textContent=new Date(e.created_at*1000).toISOString();const payload=document.createElement('pre');payload.textContent=JSON.stringify(e.payload,null,2);box.append(title,document.createElement('br'),time,payload);events.append(box);});
+}).catch(e=>state.textContent='Trace unavailable: '+e);
+</script>
