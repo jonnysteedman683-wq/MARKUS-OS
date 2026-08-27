@@ -42,6 +42,12 @@ logger = logging.getLogger("Markus.ObsidianSync")
 
 WATERMARK_KEY = "VAULT_SYNC_LAST_TS"
 
+# Cap for a single day's LIVE stream file. When a daily stream exceeds this,
+# it is rotated into Journal/Markus/Archive/ and the day starts fresh, so no
+# single Obsidian note grows into a multi-MB parse burden. (The 2026-08-26
+# stream hit 4.3 MB / 19k lines — this prevents that from recurring.)
+LIVE_STREAM_CAP_BYTES = 256 * 1024  # 256 KB per daily stream
+
 # The shared cortex DB's OS_STATUS register can be clobbered to "HALTED" by a
 # stale markus_server instance shutting down after the live server booted.
 # The vault must reflect the *live* kernel state, so probe the running server
@@ -137,6 +143,27 @@ class MarkusObsidianSync:
         }
 
     # ------------------------------------------------- append-only live stream
+    def _rotate_live_stream(self, live_file: Path) -> bool:
+        """If `live_file` exceeds the cap, move it to Archive/ and return True.
+
+        The daily stream then restarts empty; the archived copy keeps the full
+        provenance under git. Never deletes data — only relocates it.
+        """
+        try:
+            if not live_file.exists():
+                return False
+            if live_file.stat().st_size < LIVE_STREAM_CAP_BYTES:
+                return False
+            archive_dir = self.markus_journal_dir / "Archive"
+            archive_dir.mkdir(parents=True, exist_ok=True)
+            target = archive_dir / live_file.name
+            live_file.replace(target)
+            logger.info(f"Rotated oversized live stream to {target} ({live_file.stat().st_size if live_file.exists() else 'moved'} bytes)")
+            return True
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"live-stream rotation failed (fail-open): {exc}")
+            return False
+
     def append_new_thoughts(self, batch: int = 200) -> Dict[str, Any]:
         """Append cortex thoughts newer than the watermark to the day's LIVE file.
 
@@ -145,6 +172,8 @@ class MarkusObsidianSync:
         """
         now_dt = datetime.now(timezone.utc)
         date_str, _, live_file = self._daily_paths(now_dt)
+        # Rotate an oversized previous day's stream before appending today's.
+        self._rotate_live_stream(live_file)
         watermark = self.db.get_register(WATERMARK_KEY, 0.0) or 0.0
 
         with self.db._get_connection() as conn:
