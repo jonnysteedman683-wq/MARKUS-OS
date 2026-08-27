@@ -407,6 +407,14 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             else:
                 self._set_headers(404)
                 self.wfile.write(b"<h1>404 - trace page not found</h1>")
+        elif self.path == "/api/runs" or self.path == "/api/runs?":
+            try:
+                runs = run_ledger.list_runs(limit=20)
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"runs": [asdict(r) for r in runs]}).encode("utf-8"))
+            except Exception as exc:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
         elif self.path.startswith("/api/runs/"):
             run_id = self.path.split("/api/runs/", 1)[1].split("?", 1)[0]
             try:
@@ -476,10 +484,40 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 self._set_headers(400)
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
 
+        elif self.path.startswith("/api/runs/") and self.path.endswith("/resume"):
+            try:
+                run_id = self.path.split("/api/runs/", 1)[1].rsplit("/resume", 1)[0]
+                data = json.loads(body) if body else {}
+                run = run_ledger.get_run(run_id)
+                if not run:
+                    self._set_headers(404)
+                    self.wfile.write(json.dumps({"error": "run not found"}).encode("utf-8"))
+                    return
+                # Resume only from non-terminal states
+                if run.status in {"COMMITTED", "SYNCED", "FAILED", "REJECTED"}:
+                    self._set_headers(409)
+                    self.wfile.write(json.dumps({"error": f"cannot resume from {run.status}", "run": run_ledger.trace(run_id)}).encode("utf-8"))
+                    return
+                checkpoint = data.get("checkpoint") or run.checkpoint
+                prompt = data.get("prompt", "")
+                run_ledger.checkpoint(run_id, "resumed", {"from_checkpoint": checkpoint, "prompt": prompt})
+                run_ledger.transition(run_id, "RUNNING", payload={"resumed": True, "checkpoint": checkpoint}, idempotency_key=f"resume:{checkpoint or 'none'}")
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"run": run_ledger.trace(run_id), "resumed_from": checkpoint}).encode("utf-8"))
+            except (RunLedgerError, ValueError, TypeError) as exc:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+
         elif self.path == "/api/intent":
             # body already read by Thors security gate above
             run = None
             try:
+                # Concurrent run cap
+                active = run_ledger.active_runs_for(mode=None)
+                if len(active) >= 10:
+                    self._set_headers(429)
+                    self.wfile.write(json.dumps({"error": "too many concurrent runs", "active": len(active)}).encode("utf-8"))
+                    return
                 data = json.loads(body) if body else {}
                 prompt = data.get("prompt", "")
                 run = run_ledger.create_run(goal_id=data.get("goal_id"), mode=data.get("mode", "FIELD"))
@@ -554,6 +592,25 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 }
                 run_ledger.transition(run.run_id, "VERIFYING", payload={"response_present": bool(response_text)}, idempotency_key="verifying")
                 run_ledger.transition(run.run_id, "PASSED" if response_text else "FAILED", payload={"latency_ms": _latency_ms}, idempotency_key="complete")
+
+                # VORPAL gate: check goal pulse before committing a run
+                if response_text:
+                    try:
+                        from markus_vorpal_bridge import MarkusVorpalBridge
+                        _vb = MarkusVorpalBridge()
+                        _vsummary = _vb.sync_vorpal_to_memory(kernel.memory)
+                        pulse = _vsummary.get("goal_pulse", 1.0)
+                        gate_pass = pulse >= 0.0
+                        run_ledger.transition(run.run_id, "VORPAL_GATE", payload={"goal_pulse": pulse, "gate": "PASS" if gate_pass else "FAIL"}, idempotency_key="vorpal-gate")
+                        if not gate_pass:
+                            run_ledger.transition(run.run_id, "FAILED", payload={"error": "VORPAL gate rejected: degraded goal pulse"}, idempotency_key="vorpal-block")
+                            self._set_headers(200)
+                            self.wfile.write(json.dumps({**res, "run_status": "FAILED", "gate": "VORPAL_GATE"}).encode("utf-8"))
+                            return
+                        run_ledger.transition(run.run_id, "COMMITTED", payload={"pulse": pulse}, idempotency_key="committed")
+                    except Exception as gate_err:
+                        logger.warning(f"VORPAL gate failed (fail-open): {gate_err}")
+                        run_ledger.transition(run.run_id, "COMMITTED", payload={"gate_error": str(gate_err)}, idempotency_key="committed-fallback")
                 self._set_headers(200)
                 self.wfile.write(json.dumps(res).encode("utf-8"))
             except Exception as exc:

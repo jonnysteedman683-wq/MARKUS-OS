@@ -190,6 +190,24 @@ class RunLedger:
             rows = self._db.execute("SELECT * FROM run_events WHERE run_id=? ORDER BY sequence", (run_id,)).fetchall()
         return [RunEvent(r["run_id"], r["sequence"], r["event_type"], json.loads(r["payload_json"]), r["created_at"], r["idempotency_key"]) for r in rows]
 
+    def list_runs(self, limit: int = 20) -> List[RunRecord]:
+        with self._lock:
+            rows = self._db.execute("SELECT * FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        return [RunRecord(r["run_id"], r["goal_id"], r["mode"], r["status"], r["provider"],
+                         r["model"], r["input_hash"], r["checkpoint"], bool(r["approval_required"]),
+                         r["created_at"], r["updated_at"]) for r in rows]
+
+    def active_runs_for(self, mode: Optional[str] = None) -> List[RunRecord]:
+        states = ("RECEIVED", "ROUTED", "RUNNING", "VERIFYING", "WAITING_APPROVAL")
+        with self._lock:
+            if mode:
+                rows = self._db.execute("SELECT * FROM runs WHERE status IN (?,?,?,?,?) AND mode=?", (*states, mode)).fetchall()
+            else:
+                rows = self._db.execute("SELECT * FROM runs WHERE status IN (?,?,?,?,?)", states).fetchall()
+        return [RunRecord(r["run_id"], r["goal_id"], r["mode"], r["status"], r["provider"],
+                         r["model"], r["input_hash"], r["checkpoint"], bool(r["approval_required"]),
+                         r["created_at"], r["updated_at"]) for r in rows]
+
     def trace(self, run_id: str) -> Dict[str, Any]:
         rec = self.get_run(run_id)
         if not rec:
