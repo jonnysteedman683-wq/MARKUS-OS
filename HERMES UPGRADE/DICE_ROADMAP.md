@@ -301,3 +301,19 @@ Low
     next: Audit GOALS/NOTES/registry for stale or false claims; fix; commit
 - Curation die: DEEP — Run CURATE + ENHANCE + OPTIMISE (the extra chance).
 - Status: EXECUTED (log this cycle in DICE_ROADMAP.md)
+
+## 2026-08-27T19:40:00+10:00 — RESEARCH_HERMES_ROADMAP (slot 11)
+- Source: https://hermes-agent.nousresearch.com/docs/ (live fetch)
+- New/confirmed capabilities worth wiring into the VORPAL stack:
+  1. **Bot Mode** — durable named Bots each with own model/memory/skills/routines/chats,
+     work together in group chats + @mentions. Maps 1:1 to the VORPAL per-role philosophy.
+     Candidate: give MARKUS a dedicated Bot identity instead of the ad-hoc server.
+  2. **llms.txt / llms-full.txt** — machine-readable full docs (~1.8MB) at
+     /docs/llms.txt and /docs/llms-full.txt. Replace ad-hoc doc scrapes in skill work.
+  3. **Serverless backends** (Daytona/Modal) — environment hibernates when idle; low-cost
+     always-on MARKUS possible if ever needed off this box.
+  4. **Honcho** — dialectic user modeling; candidate to feed VORPAL memory protocol.
+  5. **MCP tool filtering** per server (include/exclude lists) — already in use; confirm
+     comfy-cloud include list is a model of the pattern.
+- Decision: Bot Mode (item 1) is the highest-leverage next integration for the triad.
+  Status: RESEARCHED (log only; no code changed this slot).
