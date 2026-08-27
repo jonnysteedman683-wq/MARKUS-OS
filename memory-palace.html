@@ -285,12 +285,13 @@
 </aside>
 
 <div class="controls">
-  <input class="search-box" id="search" type="text" placeholder="search memories…" />
-  <button class="btn" id="btnReset">⟳ reset</button>
-  <button class="btn" id="btnPlay" title="play memory timeline">▶ timeline</button>
+  <input class="search-box" id="search" type="text" placeholder="search memories…" aria-label="Search memories" />
+  <button class="btn" id="btnReset" aria-label="Reset search">⟳ reset</button>
+  <button class="btn" id="btnPlay" title="play memory timeline" aria-label="Play memory timeline">▶ timeline</button>
 </div>
 <div class="timeline" id="timeline" hidden>
-  <input type="range" id="tlSlider" min="0" max="100" value="100" />
+  <label for="tlSlider" class="visually-hidden">Timeline position</label>
+  <input type="range" id="tlSlider" min="0" max="100" value="100" aria-label="Timeline position" />
   <span id="tlLabel">all memories</span>
 </div>
 
@@ -305,7 +306,7 @@
 <div class="hint" id="hint">scroll to zoom · drag to pan · click to inspect</div>
 
 <aside class="inspector" id="inspector">
-  <div class="insp-head"><span id="inspKind">memory</span><button class="close" id="inspClose">✕</button></div>
+  <div class="insp-head"><span id="inspKind">memory</span><button class="close" id="inspClose" aria-label="Close inspector">✕</button></div>
   <div class="insp-date" id="inspDate"></div>
   <div class="insp-text" id="inspText"></div>
   <div class="insp-links" id="inspLinks"></div>

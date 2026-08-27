@@ -173,18 +173,18 @@
     <h2>target allowlist</h2>
     <div class="target-list" id="targetList"></div>
     <div class="add-row">
-      <input id="targetInput" type="text" placeholder="localhost · 127.0.0.1 · 192.168.x.x · repo:C:/path" />
-      <button id="btnAdd">+ add</button>
+      <input id="targetInput" type="text" placeholder="localhost · 127.0.0.1 · 192.168.x.x · repo:C:/path" aria-label="Scan target input" />
+      <button id="btnAdd" aria-label="Add target">+ add</button>
     </div>
   </div>
 
   <div class="card">
     <h2>scanners</h2>
     <div class="scan-grid">
-      <button data-kind="port" class="scan-btn">🔍 port scan (33 ports)</button>
-      <button data-kind="headers" class="scan-btn">🛡️ http headers audit</button>
-      <button data-kind="secrets" class="scan-btn">🔑 secrets & tokens scan</button>
-      <button data-kind="deps" class="scan-btn">📦 cve & deps scan</button>
+      <button data-kind="port" class="scan-btn" aria-label="Port scan">🔍 port scan (33 ports)</button>
+      <button data-kind="headers" class="scan-btn" aria-label="HTTP headers audit">🛡️ http headers audit</button>
+      <button data-kind="secrets" class="scan-btn" aria-label="Secrets and tokens scan">🔑 secrets & tokens scan</button>
+      <button data-kind="deps" class="scan-btn" aria-label="CVE and dependencies scan">📦 cve & deps scan</button>
     </div>
     <div id="scanTarget" class="empty">select a target above</div>
     <div class="result" id="result" hidden></div>

@@ -282,7 +282,7 @@
   <div>MEMORY CORTEX: <span class="active" id="memoryStatus">3-TIER SYNCED</span></div>
   <div>DICE ENGINE: <span class="active" id="diceStatus" style="color:var(--cyan);">ROLL: [6, 1] UI</span></div>
   <div>DAG PIPELINE: <span class="active" id="dagStatus" style="color:var(--emerald);">READY</span></div>
-  <div>ACOUSTICS: <span class="sound-toggle" id="soundToggle">SOUND ON</span></div>
+  <div>ACOUSTICS: <span class="sound-toggle" id="soundToggle" role="button" tabindex="0" aria-label="Toggle sound">SOUND ON</span></div>
 </div>
 
 <!-- Center Orb Status -->
@@ -323,14 +323,14 @@
     <span>INTENT & IPC DISPATCH CONSOLE</span>
     <span style="color:var(--emerald);">READY</span>
   </div>
-  <div class="terminal-output" id="terminalOutput">
+  <div class="terminal-output" id="terminalOutput" aria-live="polite" aria-label="Terminal output log">
     <div class="log-line log-sys">[07:52:10] MARKUS Kernel booted. Private infrastructure online.</div>
     <div class="log-line log-sys">[07:52:11] Hermes private bridge mounted on profile 'markus'.</div>
     <div class="log-line log-markus">[MARKUS] Ready for autonomous intent execution and code optimization.</div>
   </div>
   <form class="terminal-input-form" id="terminalForm">
-    <input type="text" class="terminal-input" id="terminalInput" placeholder="Dispatch intent to MARKUS OS..." autocomplete="off" />
-    <button type="submit" class="terminal-btn">SEND</button>
+    <input type="text" class="terminal-input" id="terminalInput" placeholder="Dispatch intent to MARKUS OS..." autocomplete="off" aria-label="Intent dispatch input" />
+    <button type="submit" class="terminal-btn" aria-label="Send intent">SEND</button>
   </form>
 </div>
 
@@ -524,12 +524,21 @@
   let soundEnabled = true;
   const soundToggle = document.getElementById("soundToggle");
   if (soundToggle) {
-    soundToggle.addEventListener("click", () => {
+    const toggleSound = () => {
       soundEnabled = !soundEnabled;
       soundToggle.textContent = soundEnabled ? "SOUND ON" : "MUTED";
       soundToggle.classList.toggle("off", !soundEnabled);
+      soundToggle.setAttribute("aria-pressed", String(soundEnabled));
       if (soundEnabled && audioCtx.state === "suspended") audioCtx.resume();
+    };
+    soundToggle.addEventListener("click", toggleSound);
+    soundToggle.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleSound();
+      }
     });
+    soundToggle.setAttribute("aria-pressed", "true");
   }
 
   // Autoplay policies need a user gesture before audio starts — boot chime on first interaction
