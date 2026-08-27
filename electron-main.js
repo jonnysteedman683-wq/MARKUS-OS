@@ -1,16 +1,24 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn } = require('child_process');
+const http = require('http');
 const path = require('path');
 
+let mainWindow = null;
 let pyProc = null;
 
+const SERVER_URL = 'http://127.0.0.1:8128';
+const SERVER_SCRIPT = path.join(__dirname, 'markus_server.py');
+
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 960,
-    minHeight: 600,
+  mainWindow = new BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 1024,
+    minHeight: 680,
+    title: 'MARKUS OS — Autonomous Agent Command Deck',
     backgroundColor: '#030712',
+    frame: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'electron-preload.js'),
       contextIsolation: true,
@@ -19,26 +27,55 @@ function createWindow() {
     }
   });
 
-  win.loadFile('markus-os.html');
+  mainWindow.setMenuBarVisibility(false);
+
+  // Poll server availability before loading
+  let attempts = 0;
+  const loadApp = () => {
+    mainWindow.loadURL(SERVER_URL).catch(() => {
+      attempts++;
+      if (attempts < 10) {
+        setTimeout(loadApp, 500);
+      } else {
+        console.warn('[Electron Main] Backend timeout. Fallback to local HTML.');
+        mainWindow.loadFile(path.join(__dirname, 'markus-os.html'));
+      }
+    });
+  };
+
+  setTimeout(loadApp, 800);
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
 function startPythonServer() {
-  const pyPath = path.join(__dirname, 'markus_server.py');
-  pyProc = spawn('python', [pyPath], {
-    cwd: __dirname
+  console.log('[Electron Main] Spawning MARKUS OS Python Server:', SERVER_SCRIPT);
+  pyProc = spawn('python', [SERVER_SCRIPT], {
+    cwd: __dirname,
+    stdio: 'inherit'
   });
 
-  pyProc.stdout?.on('data', (data) => {
-    console.log(`[MARKUS-SERVER] ${data}`);
+  pyProc.on('error', (err) => {
+    console.error('[Electron Main] Failed to spawn Python server:', err);
   });
 
-  pyProc.stderr?.on('data', (data) => {
-    console.error(`[MARKUS-SERVER-ERR] ${data}`);
+  pyProc.on('exit', (code, signal) => {
+    console.log(`[Electron Main] Python server process exited with code ${code}, signal ${signal}`);
   });
+}
 
-  pyProc.on('close', (code) => {
-    console.log(`[MARKUS-SERVER] Exited with code ${code}`);
-  });
+function stopPythonServer() {
+  if (pyProc) {
+    console.log('[Electron Main] Terminating Python Server process...');
+    pyProc.kill('SIGTERM');
+    pyProc = null;
+  }
 }
 
 app.whenReady().then(() => {
@@ -52,8 +89,32 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', () => {
-  if (pyProc) {
-    pyProc.kill();
+app.on('window-all-closed', () => {
+  stopPythonServer();
+  if (process.platform !== 'darwin') {
+    app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  stopPythonServer();
+});
+
+// IPC handlers for window control
+ipcMain.handle('system:minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.handle('system:maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+ipcMain.handle('system:close', () => {
+  if (mainWindow) mainWindow.close();
 });

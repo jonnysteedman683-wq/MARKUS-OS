@@ -317,3 +317,18 @@ Low
      comfy-cloud include list is a model of the pattern.
 - Decision: Bot Mode (item 1) is the highest-leverage next integration for the triad.
   Status: RESEARCHED (log only; no code changed this slot).
+
+## 2026-08-28T03:01:12+10:00 — mode=triad
+- Coin gate: PASS
+- Lead system: VORPAL
+- HERMES slot 9: UPGRADE_HERMES_FRONTEND
+    target: hermes-desktop-plugins, preview widgets, ::preview{file=...} pages, inline chat widgets
+    next: Build/extend a desktop plugin or chat widget; deliver as ::preview{file=...}
+- MARKUS slot 3: UPGRADE_MARKUS_FRONTEND
+    target: electron-main.js, electron-preload.js, package.json, hive-core/ frontend, markus-os-electron/
+    next: npm install per package.json; electron smoke test
+- VORPAL slot 14: UPGRADE_VORPAL_LINGUA
+    target: Desktop/VORPAL: LINGUA/ (lingua_prima, lp_tool, LINGUA_PROTOCOL.md)
+    next: Edit LINGUA modules; run lingua harnesses; py_compile; commit
+- Curation die: ENHANCE — Patch one skill with this cycle's lesson via skill_manage patch; bump version; keep pitfalls fresh.
+- Status: EXECUTED (log this cycle in DICE_ROADMAP.md)

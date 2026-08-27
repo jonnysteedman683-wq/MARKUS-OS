@@ -583,6 +583,59 @@ class MarkusObsidianSync:
             "timestamp": time.time(),
         }
 
+    # --------------------------------------------------- vault feedback reader
+    def read_vault_feedback(self, threshold_s: int = 60) -> List[Dict[str, Any]]:
+        """Read operator intent from the vault — Inbox captures, today's daily focus.
+
+        Returns a list of cortex-compatible dicts:
+        { "agent": "VAULT_FEEDBACK_READER", "content": "...", "metadata": {"source": "Inbox|Daily", ...} }
+
+        The caller (e.g., intent router) can commit these to cortex so they influence
+        reflexion loops and don't bleed into other days.
+        """
+        now_ts = datetime.now(timezone.utc).timestamp()
+        results = []
+
+        # --- Inbox: first non-table paragraph from new captures ---
+        inbox_dir = self.vault_path / "Inbox"
+        if inbox_dir.exists():
+            for f in sorted(inbox_dir.glob("*.md"))[:10]:
+                if f.name == "README.md":
+                    continue
+                try:
+                    if (now_ts - f.stat().st_mtime) > threshold_s:
+                        continue
+                    txt = f.read_text(encoding="utf-8", errors="replace")
+                    for para in txt.split("\n\n"):
+                        clean = para.strip()
+                        if clean and not clean.startswith("|"):
+                            results.append({
+                                "agent": "VAULT_FEEDBACK_READER",
+                                "content": f"{f.stem}: {clean[:300]}",
+                                "metadata": {"source": "Inbox", "file": str(f.relative_to(self.vault_path))}
+                            })
+                            break
+                except OSError:  # noqa: BLE001
+                    pass
+
+        # --- Today's daily note: Focus section ---
+        daily_dir = self.vault_path / "Journal" / "Daily"
+        if daily_dir.exists():
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today_file = daily_dir / f"{today}.md"
+            if today_file.exists() and (now_ts - today_file.stat().st_mtime) <= threshold_s:
+                txt = today_file.read_text(encoding="utf-8", errors="replace")
+                focus_match = re.search(r"## Focus\s*\n(.*?)(?:\n\s*##|$)", txt, re.S)
+                if focus_match:
+                    focus = focus_match.group(1).strip()
+                    if focus:
+                        results.append({
+                            "agent": "VAULT_FEEDBACK_READER",
+                            "content": f"Today Focus: {focus}",
+                            "metadata": {"source": "Daily", "file": str(today_file.relative_to(self.vault_path))}
+                        })
+        return results
+
     def sync_all(self) -> Dict[str, Any]:
         """Run the complete vault pipeline: digest + live + canvas + deck + commit."""
         digest = self.sync_daily_digest()
