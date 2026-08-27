@@ -3,6 +3,7 @@
 from __future__ import annotations
 import json
 import urllib.request
+import uuid
 
 BASE = "http://127.0.0.1:8128"
 
@@ -21,7 +22,8 @@ def main():
         line1 = response.readline().decode().strip()
         line2 = response.readline().decode().strip()
     assert line1 == "event: handshake" and "STREAM_CONNECTED" in line2
-    status, body = request("/api/runs", "POST", {"run_id":"smoke-run", "goal_id":"GOAL_SMOKE", "mode":"FIELD"})
+    run_id = "smoke-" + uuid.uuid4().hex
+    status, body = request("/api/runs", "POST", {"run_id":run_id, "goal_id":"GOAL_SMOKE", "mode":"FIELD"})
     assert status == 201
     status, body = request("/api/runs/smoke-run/transition", "POST", {"status":"ROUTED", "idempotency_key":"smoke-route"})
     assert status == 200
