@@ -362,14 +362,9 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
         elif self.path == "/api/vault/sync":
             # Obsidian Palace Bridge — on-demand L3 -> vault flush
             try:
-                digest = obsidian_sync.sync_daily_digest(limit=50)
-                live = obsidian_sync.append_new_thoughts()
-                res = {
-                    "status": "OK",
-                    "vault": str(obsidian_sync.vault_path),
-                    "digest": digest,
-                    "live": live,
-                }
+                res = obsidian_sync.sync_all()
+                res["status"] = "OK"
+                res["vault"] = str(obsidian_sync.vault_path)
             except Exception as exc:
                 res = {"status": "ERROR", "error": str(exc)}
             self._set_headers(200)
@@ -911,10 +906,13 @@ def run_server(port: int = 8128) -> None:
         logger.warning(f"VORPAL boot sync failed (fail-open): {exc}")
 
     def _auto_vault_sync(interval_s: float = 300.0) -> None:
-        """Append new L3 thoughts to the VORPAL Vault journal and generate Canvas graphs periodically."""
+        """Append new L3 thoughts to the VORPAL Vault journal, regenerate the
+        Canvas graph + command deck, and commit the vault (provenance)."""
         try:
             obsidian_sync.append_new_thoughts()  # immediate catch-up on boot
             obsidian_sync.generate_canvas_graph()
+            obsidian_sync.generate_dashboard()
+            obsidian_sync._git_commit("sync(vault): boot catch-up")
         except Exception as exc:
             logger.warning(f"Vault boot sync failed: {exc}")
         while True:
@@ -922,6 +920,8 @@ def run_server(port: int = 8128) -> None:
             try:
                 obsidian_sync.append_new_thoughts()
                 obsidian_sync.generate_canvas_graph()
+                obsidian_sync.generate_dashboard()
+                obsidian_sync._git_commit("sync(vault): periodic")
             except Exception as exc:
                 logger.warning(f"Vault auto-sync failed: {exc}")
 
