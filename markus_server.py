@@ -378,9 +378,13 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             # VORPAL goal DAG -> live route. Parsed on demand from
             # EVOLVE/GOALS/GOALS.md via markus_vorpal_bridge; goal-state
             # becomes a live surface instead of a client-tree fiction.
+            # Also refreshes the memory-cortex VORPAL_* registers so the
+            # dice engine reads current goal pulse (not boot-time only).
             try:
                 import markus_vorpal_bridge as _vbridge
-                st = _vbridge.MarkusVorpalBridge().read_vorpal_status()
+                _vb = _vbridge.MarkusVorpalBridge()
+                st = _vb.read_vorpal_status()
+                _vb.sync_vorpal_to_memory(kernel.memory)
                 res = {
                     "status": "OK",
                     "goal_count": st.goal_count,
@@ -893,6 +897,18 @@ def run_server(port: int = 8128) -> None:
     httpd = ThreadingHTTPServer(server_address, MarkusRequestHandler)
     print(f"[MARKUS-OS] Live API & SSE Stream Server listening on http://{host}:{port}")
     print(f"[MARKUS-OS] Obsidian Palace Bridge -> {obsidian_sync.vault_path}")
+
+    # Boot-time VORPAL goal-state sync: populate the VORPAL_* memory
+    # registers (pulse / open / total) immediately so the dice engine
+    # weights toward VORPAL work from cycle one. Fail-open if absent.
+    try:
+        import markus_vorpal_bridge as _vbridge
+        _vboot = _vbridge.MarkusVorpalBridge()
+        _vsummary = _vboot.sync_vorpal_to_memory(kernel.memory)
+        print(f"[MARKUS-OS] VORPAL bridge boot sync -> pulse={_vsummary.get('goal_pulse')} "
+              f"({_vsummary.get('implemented_goal_count')}/{_vsummary.get('goal_count')} implemented)")
+    except Exception as exc:
+        logger.warning(f"VORPAL boot sync failed (fail-open): {exc}")
 
     def _auto_vault_sync(interval_s: float = 300.0) -> None:
         """Append new L3 thoughts to the VORPAL Vault journal and generate Canvas graphs periodically."""
