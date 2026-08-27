@@ -15,6 +15,7 @@ import time
 from http.server import HTTPServer, BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, List
+from dataclasses import asdict
 
 from markus_kernel import MarkusKernel, KernelMessage, TaskPriority
 from markus_brain_backend import ask_brain, route_brain_model
