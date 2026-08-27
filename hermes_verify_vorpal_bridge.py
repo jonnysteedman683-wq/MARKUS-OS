@@ -60,6 +60,29 @@ def main() -> int:
     else:
         results.append(check("VORPAL absent (skip real-DAG checks)", True))
 
+    # 1b. Regression: child lines that only REFERENCE a goal (UNLOCKS/BLOCKED
+    #     BY) must not be counted as new goal blocks. This used to inflate the
+    #     count and fabricate an open goal (35 vs 33 real titles).
+    with tempfile.TemporaryDirectory() as tmp:
+        fake_goals = Path(tmp) / "GOALS.md"
+        fake_goals.write_text(
+            "- [x] **[a1->b1->t0] GOAL_1.1:** Triad State Memory Abstraction\n"
+            "  - [IMPLEMENTED: state_memory_manager]\n"
+            "  - [UNLOCKS: GOAL_6.1 - HIVE Integration Bridge now unblocked\n"
+            "- [x] **[a6->b6->t1] GOAL_6.6:** Generational Fold Gates\n"
+            "  - [IMPLEMENTED: fold_gate_monitor]\n"
+            "  - [BLOCKED BY: GOAL_6.1] -> RESOLVED (roster feed)\n",
+            encoding="utf-8")
+        old_goals_path = mod.GOALS_PATH
+        mod.GOALS_PATH = fake_goals
+        try:
+            t, o, i = b._parse_goals(fake_goals)
+            results.append(check("UNLOCKS/BLOCKED-BY refs not counted as goals",
+                                 t == 2 and o == 0 and i == 2,
+                                 f"total={t} open={o} implemented={i}"))
+        finally:
+            mod.GOALS_PATH = old_goals_path
+
     # 2. Telemetry write path to a temp ledger.
     with tempfile.TemporaryDirectory() as tmp:
         tmp_ledger = Path(tmp) / "TELEMETRY.json"

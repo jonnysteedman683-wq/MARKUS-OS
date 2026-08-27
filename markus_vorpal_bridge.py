@@ -116,6 +116,17 @@ class MarkusVorpalBridge:
         return st
 
     @staticmethod
+    def _is_goal_title(line: str) -> bool:
+        """True when `line` is a real goal-title header (top-level bullet of the
+        form `- [x] **[a#->b#->t#] GOAL_N.M:** ...`). Child/continuation lines
+        that merely *reference* a goal (e.g. `- [UNLOCKS: GOAL_6.1 ...` or
+        `- [BLOCKED BY: GOAL_6.1] ...`) are indented bullets and must NOT be
+        counted as new goals — matching on raw "GOAL_" inflated the goal count
+        and fabricated open goals (35 vs 33 real titles on the live DAG)."""
+        return bool(re.match(
+            r"^\s*-\s+\[[ xX]\]\s+\*\*\[[^\]]*\]\s*GOAL_\d+\.\d+\s*:", line))
+
+    @staticmethod
     def _parse_goals(path: Path) -> tuple:
         text = path.read_text(encoding="utf-8", errors="replace")
         lines = text.splitlines()
@@ -128,7 +139,7 @@ class MarkusVorpalBridge:
             if line.startswith("## "):
                 phase = line[3:].strip()
                 continue
-            if "GOAL_" in line:
+            if MarkusVorpalBridge._is_goal_title(line):
                 # A new goal title starts a block.
                 if in_goal_block:
                     # close the previous block
