@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """End-to-end integration test across MARKUS, VORPAL, and Citadel."""
 from __future__ import annotations
+import asyncio
 import json
 import urllib.request
 import uuid
@@ -23,7 +24,7 @@ def main():
     # 2. Create run
     rid = "e2e-" + uuid.uuid4().hex
     s, b = req("/api/runs", "POST", {"run_id": rid, "goal_id": "GOAL_E2E", "mode": "FIELD"})
-    trace = b.get("run", b)
+    trace = b.get("run", {}).get("run", b.get("run", {}))
     results.append(("Run created", s == 201 and trace.get("run_id") == rid))
 
     # 3. Transition: ROUTED
@@ -66,11 +67,15 @@ def main():
     except Exception as e:
         results.append(("Citadel write", False))
 
-    # 10. Workspace parity
-    spec2 = importlib.util.spec_from_file_location("mk_ws", "markus_workspace.py")
-    ws_mod = importlib.util.module_from_spec(spec2)
-    spec2.loader.exec_module(ws_mod)
-    import asyncio
+    # 8. Workspace parity
+    ws_mod = None
+    if "markus_workspace" not in sys.modules:
+        spec2 = importlib.util.spec_from_file_location("markus_workspace", "markus_workspace.py")
+        ws_mod = importlib.util.module_from_spec(spec2)
+        sys.modules["markus_workspace"] = ws_mod
+        spec2.loader.exec_module(ws_mod)
+    else:
+        ws_mod = sys.modules["markus_workspace"]
     local = asyncio.run(ws_mod.LocalWorkspace().execute_python("print('WS_OK')"))
     sandbox = asyncio.run(ws_mod.SandboxWorkspace().execute_python("print('WS_OK')"))
     results.append(("Workspace parity", local.result.stdout.strip() == "WS_OK" and sandbox.result.stdout.strip() == "WS_OK"))
