@@ -73,12 +73,20 @@ def main():
     # endpoint exists and rejects over-limit. We verify the cap logic directly
     # via the ledger in hermes_verify_run_ledger.py.
 
+    # VORPAL dispatch endpoint (task intake from Citadel -> MARKUS -> VORPAL worker)
+    task_id = "task-" + uuid.uuid4().hex
+    status, body = request("/api/vorpal/worker/dispatch", "POST", {"task_id": task_id, "prompt": "e2e dispatch test", "mode": "FORGE"})
+    dispatch_result = json.loads(body)
+    assert status == 200 and dispatch_result.get("status") == "DISPATCHED"
+    assert dispatch_result.get("run_id") and dispatch_result.get("task_id") == task_id
+
     print("PASS - health ONLINE")
     print("PASS - SSE handshake")
     print("PASS - trace page served")
     print("PASS - run create/transition/resume/commit")
     print("PASS - terminal state blocks resume")
     print("PASS - runs list endpoint")
+    print("PASS - VORPAL dispatch endpoint")
     print("OVERALL: PASS")
 
 if __name__ == "__main__":

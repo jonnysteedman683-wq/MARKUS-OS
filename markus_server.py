@@ -993,6 +993,44 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._set_headers(500)
                 self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
+
+        elif self.path == "/api/vorpal/worker/dispatch":
+            body = self._thors_body_read if hasattr(self, '_thors_body_read') else _read_body(self)
+            try:
+                data = json.loads(body) if body else {}
+                task_id = data.get("task_id", "")
+                prompt = data.get("prompt", "")
+                mode = data.get("mode", "FORGE")
+                model = data.get("model")
+                provider = data.get("provider")
+
+                # Create a run record to track this dispatch
+                run = run_ledger.create_run(goal_id=task_id, mode=mode,
+                                            provider=provider, model=model)
+                run_ledger.checkpoint(run.run_id, "vorpal-dispatch",
+                                      {"task_id": task_id, "mode": mode})
+
+                # Broadcast SSE event for real-time tracking
+                broadcast_sse_event("vorpal_dispatch", {
+                    "task_id": task_id,
+                    "run_id": run.run_id,
+                    "mode": mode,
+                    "timestamp": time.time()
+                })
+
+                res = {
+                    "status": "DISPATCHED",
+                    "run_id": run.run_id,
+                    "task_id": task_id,
+                    "mode": mode,
+                    "routing": {"model": model, "provider": provider},
+                    "message": f"Task '{task_id}' dispatched to VORPAL worker via run {run.run_id}"
+                }
+                self._set_headers(200)
+                self.wfile.write(json.dumps(res).encode("utf-8"))
+            except Exception as exc:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": str(exc)}).encode("utf-8"))
         else:
             self._set_headers(404)
             self.wfile.write(b'{"error": "Not Found"}')
