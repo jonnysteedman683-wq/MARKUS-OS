@@ -30,6 +30,7 @@ class TaskNode:
     name: str
     action: Callable[..., Coroutine[Any, Any, Any]]
     dependencies: Set[str] = field(default_factory=set)
+    recovery: str = "idempotent"
     state: NodeState = NodeState.PENDING
     result: Any = None
     error: Optional[str] = None
@@ -59,9 +60,10 @@ class TaskNode:
 class TaskDAG:
     """Directed Acyclic Graph orchestrator for multi-agent task execution."""
 
-    def __init__(self, dag_id: str = "default_dag") -> None:
+    def __init__(self, dag_id: str = "default_dag", journal: Optional[Any] = None) -> None:
         self.dag_id = dag_id
         self.nodes: Dict[str, TaskNode] = {}
+        self.journal = journal
 
     def to_spec(self) -> Dict[str, Any]:
         """Returns the full DAG specification and node status map."""
@@ -92,9 +94,23 @@ class TaskDAG:
                 dep_results.update(context)
 
             if asyncio.iscoroutinefunction(node.action):
-                node.result = await node.action(dep_results)
+                if self.journal is not None:
+                    node.result = await self.journal.arun(
+                        node_id,
+                        recovery=node.recovery,
+                        action=lambda: node.action(dep_results),
+                    )
+                else:
+                    node.result = await node.action(dep_results)
             else:
-                node.result = node.action(dep_results)
+                if self.journal is not None:
+                    node.result = self.journal.run(
+                        node_id,
+                        recovery=node.recovery,
+                        action=lambda: node.action(dep_results),
+                    )
+                else:
+                    node.result = node.action(dep_results)
             node.state = NodeState.COMPLETED
         except Exception as exc:
             node.error = str(exc)
@@ -110,13 +126,14 @@ class TaskDAG:
         node_id: str,
         name: str,
         action: Callable[..., Coroutine[Any, Any, Any]],
-        dependencies: Optional[Set[str]] = None
+        dependencies: Optional[Set[str]] = None,
+        recovery: str = "idempotent",
     ) -> TaskNode:
         if node_id in self.nodes:
             raise ValueError(f"Node '{node_id}' already exists in DAG '{self.dag_id}'")
-        
+
         deps = dependencies or set()
-        node = TaskNode(id=node_id, name=name, action=action, dependencies=deps)
+        node = TaskNode(id=node_id, name=name, action=action, dependencies=deps, recovery=recovery)
         self.nodes[node_id] = node
         return node
 
@@ -180,9 +197,23 @@ class TaskDAG:
                     # Collect dependency results as kwargs/context
                     dep_results = {dep_id: self.nodes[dep_id].result for dep_id in node.dependencies}
                     if asyncio.iscoroutinefunction(node.action):
-                        node.result = await node.action(dep_results)
+                        if self.journal is not None:
+                            node.result = await self.journal.arun(
+                                node.id,
+                                recovery=node.recovery,
+                                action=lambda: node.action(dep_results),
+                            )
+                        else:
+                            node.result = await node.action(dep_results)
                     else:
-                        node.result = node.action(dep_results)
+                        if self.journal is not None:
+                            node.result = self.journal.run(
+                                node.id,
+                                recovery=node.recovery,
+                                action=lambda: node.action(dep_results),
+                            )
+                        else:
+                            node.result = node.action(dep_results)
                     node.state = NodeState.COMPLETED
                 except Exception as exc:
                     node.error = str(exc)
