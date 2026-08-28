@@ -1,0 +1,64 @@
+name: Battle-Test Regression Suite
+
+# Adversarial battle-test regression tests (tests/battle).
+# These tests encode the SECURE behaviour and are intentionally RED against
+# the current unpatched code — see battle-test-report.md. They are wired into
+# CI so every commit shows the current security posture; they turn GREEN as
+# the documented fixes land.
+#
+# Dependency notes:
+#   * markus_run_ledger.py is local-master only, and the sibling VORPAL repo
+#     (ark_sandbox / syscalls / kernel) is local-only and NOT published, so the
+#     tests that need them skip cleanly in CI (pytest.importorskip) with an
+#     explicit reason. The MARKUS-core suite still runs and stays RED.
+#   * `continue-on-error` is intentional: RED = tracked, documented weaknesses.
+
+on:
+  push:
+    branches: [master, 'feat/**', 'battle-test/**']
+  pull_request:
+
+jobs:
+  battle-test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pytest
+        run: python -m pip install pytest
+
+      - name: Bootstrap sibling VORPAL repo (optional, not published)
+        shell: bash
+        run: |
+          # The sibling VORPAL repo is local-only and has no public remote, so
+          # this clone is best-effort. Tests that need it skip cleanly via
+          # pytest.importorskip when it is absent.
+          if [ ! -d ../VORPAL ]; then
+            git clone --depth 1 https://github.com/jonnysteedman683-wq/VORPAL ../VORPAL 2>/dev/null \
+              || echo "VORPAL not on GitHub — dependent tests will skip (see battle-test-report.md)"
+          fi
+          echo "BATTLE_TEST_VORPAL_ROOT=$(cygpath -w "$(pwd)/../VORPAL" 2>/dev/null || echo "$(pwd)/../VORPAL")" >> $GITHUB_ENV
+
+      - name: Run battle-test regression suite
+        shell: bash
+        id: run
+        continue-on-error: true  # RED expected until fixes land (see report)
+        run: |
+          set +e
+          python -m pytest tests/battle -v --tb=line > battle_out.txt 2>&1
+          echo "BATTLE_TEST_EXIT=$?" >> $GITHUB_ENV
+          tail -80 battle_out.txt
+          echo "::notice::Exit captured to BATTLE_TEST_EXIT (see summarize step)."
+
+      - name: Summarize posture
+        shell: bash
+        run: |
+          echo "Battle-test suite executed."
+          echo "NOTE: RED tests = known unpatched weaknesses, documented one-by-one in battle-test-report.md."
+          echo "Skipped tests = dependencies absent in CI (markus_run_ledger / sibling VORPAL), documented in the report."
