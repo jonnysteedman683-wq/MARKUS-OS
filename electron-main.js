@@ -13,8 +13,9 @@ function createWindow() {
     backgroundColor: '#030712',
     webPreferences: {
       preload: path.join(__dirname, 'electron-preload.js'),
-      contextIsolation: false,
-      nodeIntegration: false
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
     }
   });
 

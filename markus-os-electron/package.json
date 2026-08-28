@@ -1,0 +1,37 @@
+{
+  "name": "markus-os-electron",
+  "version": "1.0.0",
+  "description": "MARKUS OS Autonomous Agent Desktop UI Operating System",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "productName": "MARKUS OS",
+  "author": "Jonny Steedman",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^24.13.0"
+  },
+  "build": {
+    "appId": "com.markus.ui.os",
+    "productName": "MARKUS OS",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron-main.js",
+      "electron-preload.js",
+      "package.json",
+      "../markus_ui_os.html",
+      "../markus-os.html",
+      "../markus_server.py",
+      "../markus_ui_db.py"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

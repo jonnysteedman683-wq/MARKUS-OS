@@ -1,0 +1,117 @@
+2026-08-26 05:07:55,336 [INFO] [MARKUS-OS] Initialized Persistent Cortex DB at: C:\Users\jonny\OneDrive\Desktop\New folder\markus_private\vault\markus_cortex.db
+2026-08-26 05:07:55,361 [INFO] [MARKUS-OS] Markus Cortex Replicator started on node 'node-a64490' [Port 8130]
+2026-08-26 05:07:55,365 [INFO] [MARKUS-OS] [THORS] Engine initialized — ready for retaliation
+[MARKUS-OS] Live API & SSE Stream Server listening on http://localhost:8128
+[DICE] Rolled 6 (RE_ROLL)! Re-rolling (attempt 1)...
+[DICE] Rolled 6 (RE_ROLL)! Re-rolling (attempt 2)...
+
+[DICE] Cycle dice_1787684966: Roll Sequence = [6, 6, 3] -> Final Action = UPGRADE_AI_AGENT
+[DICE] Dispatch Prompt:
+ACTION: UPGRADE_AI_AGENT (Roll chain: [6, 6, 3])
+
+You are MARKUS, an autonomous AI agent operating under the Dice Engine. Review agent capabilities, skill registry, routing thresholds, or kanban worker logic (e.g., markus_router.py, markus_kanban_wor...
+
+2026-08-26 05:09:26,782 [INFO] [MARKUS-OS] [Debate] 3 proposals generated for action: UPGRADE_AI_AGENT
+[DICE] Debate verdict: markus-forensic-sentinel | Confidence: 24.9% | Consensus: BLOCKED
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 63727)
+Traceback (most recent call last):
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 391, in do_POST
+    self.wfile.write(json.dumps(res).encode("utf-8"))
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 691, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 361, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 755, in __init__
+    self.handle()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 440, in handle
+    self.handle_one_request()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 428, in handle_one_request
+    method()
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 393, in do_POST
+    self._set_headers(500)
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 117, in _set_headers
+    self.end_headers()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 542, in end_headers
+    self.flush_headers()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 546, in flush_headers
+    self.wfile.write(b"".join(self._headers_buffer))
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 63792)
+Traceback (most recent call last):
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 391, in do_POST
+    self.wfile.write(json.dumps(res).encode("utf-8"))
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 691, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 361, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 755, in __init__
+    self.handle()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 440, in handle
+    self.handle_one_request()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 428, in handle_one_request
+    method()
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 393, in do_POST
+    self._set_headers(500)
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 117, in _set_headers
+    self.end_headers()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 542, in end_headers
+    self.flush_headers()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 546, in flush_headers
+    self.wfile.write(b"".join(self._headers_buffer))
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 51784)
+Traceback (most recent call last):
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 391, in do_POST
+    self.wfile.write(json.dumps(res).encode("utf-8"))
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 691, in process_request_thread
+    self.finish_request(request, client_address)
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 361, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 755, in __init__
+    self.handle()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 440, in handle
+    self.handle_one_request()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 428, in handle_one_request
+    method()
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 393, in do_POST
+    self._set_headers(500)
+  File "C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\markus_server.py", line 117, in _set_headers
+    self.end_headers()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 542, in end_headers
+    self.flush_headers()
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\server.py", line 546, in flush_headers
+    self.wfile.write(b"".join(self._headers_buffer))
+  File "C:\Users\jonny\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 834, in write
+    self._sock.sendall(b)
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+----------------------------------------

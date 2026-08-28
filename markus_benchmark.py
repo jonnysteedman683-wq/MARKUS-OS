@@ -45,11 +45,11 @@ BENCHMARK_PROMPTS: List[BenchmarkPrompt] = [
 FREE_MODELS = [
     {"id": "nous/poolside/laguna-s-2.1:free", "provider": "nous"},
     {"id": "nous/nemotron-3-ultra:free", "provider": "nous"},
-    {"id": "openrouter/qwen-2.5-coder-32b-instruct:free", "provider": "openrouter"},
-    {"id": "openrouter/deepseek-chat:free", "provider": "openrouter"},
-    {"id": "openrouter/google/gemini-2.0-flash-exp:free", "provider": "openrouter"},
-    {"id": "openrouter/mistral-7b-instruct:free", "provider": "openrouter"},
-    {"id": "openrouter/microsoft/phi-3-mini-4k-instruct:free", "provider": "openrouter"},
+    {"id": "deepseek/deepseek-v4-flash", "provider": "nous"},
+    {"id": "poolside/laguna-s-2.1:free", "provider": "nous"},
+    {"id": "inclusionai/ling-3.0-flash", "provider": "nous"},
+    {"id": "deepseek/deepseek-v4-pro-0813", "provider": "nous"},
+    {"id": "google/gemini-3.7-flash", "provider": "nous"},
 ]
 
 class MarkusBenchmarkSuite:

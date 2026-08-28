@@ -278,7 +278,7 @@ class ReflexionLoopEngine:
         # Phase 1: ACT (Dice Roll)
         roll = self.dice_engine.roll_reward_weighted_dice()
         action_label = self.dice_engine.ACTIONS.get(roll, "UNKNOWN")
-        print(f"\n[REFLEXION] Phase 1: ACT — Rolled {roll} → {action_label}")
+        print(f"\n[REFLEXION] Phase 1: ACT - Rolled {roll} -> {action_label}")
 
         # Phase 2: OBSERVE (Trajectory Collection)
         trajectory = self.collect_trajectory(last_n=15)

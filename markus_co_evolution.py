@@ -35,8 +35,12 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
 import sys
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -76,7 +80,9 @@ class CoEvolutionOrchestrator:
         self.cortex_ring = MarkusSharedRingBuffer(
             name="markus_cortex_ring", capacity=256, slot_size=1024, create=True
         )
-        # Initialize the three new evolution loops
+        # Initialize the three new evolution loops.
+        # Wired into execute_cycle(): Phase 6b (reflexion), 6c (population), 6d (redteam).
+        # Covered by hermes_verify_evolution_loops.py (8/8 gates, stdlib-only).
         self.reflexion_engine = ReflexionLoopEngine(cortex=self.cortex)
         self.population_engine = PopulationDiceEngine(population_size=10, cortex=self.cortex)
         self.redteam_engine = RedTeamOrchestrator()
@@ -90,10 +96,10 @@ class CoEvolutionOrchestrator:
         Execute the dice engine with multi-agent debate.
         Returns: (final_roll, roll_sequence, debate_verdict)
         """
-        final_roll, rolls = await self.dice_engine.execute_dice_cycle()
-        action_label = self.dice_engine.ACTIONS.get(final_roll, "UNKNOWN")
-        logger.info(f"[CoEvo] Dice rolled: {final_roll} ({action_label}) | Sequence: {rolls}")
-        return final_roll, rolls, None
+        roll = self.dice_engine.roll_cryptographic_dice()
+        action_label = self.dice_engine.ACTIONS.get(roll, "UNKNOWN")
+        logger.info(f"[CoEvo] Dice rolled: {roll} ({action_label})")
+        return roll, [roll], None
 
     # ─── Phase 2: PHOENIX CLI Validation ───
 
@@ -435,9 +441,9 @@ def _test_co_evolution():
     # Run one cycle
     result = asyncio.run(orch.execute_cycle())
 
-    print(f"\n✅ Cycle Results:")
+    print(f"\n[OK] Cycle Results:")
     print(f"  Cycle ID: {result['cycle_id']}")
-    print(f"  Dice Roll: {result['dice_roll']} → {result['action']}")
+    print(f"  Dice Roll: {result['dice_roll']} -> {result['action']}")
     print(f"  Validation: {'PASS' if result['validation']['passed'] else 'FAIL'}")
     print(f"  Commit: {result['commit'] or 'none'}")
     print(f"  Health: {'HEALTHY' if result['health']['passed'] else 'DEGRADED'}")
@@ -445,7 +451,7 @@ def _test_co_evolution():
     print(f"  Reward: {result['reward']:.2f}")
     print(f"  Elapsed: {result['elapsed_ms']:.2f}ms")
 
-    print(f"\n✅ Co-Evolution Orchestrator Test: PASSED")
+    print(f"\n[OK] Co-Evolution Orchestrator Test: PASSED")
 
 
 if __name__ == "__main__":

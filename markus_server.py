@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from markus_kernel import MarkusKernel, KernelMessage, TaskPriority
+from markus_brain_backend import ask_brain, route_brain_model
 from markus_hermes_bridge import MarkusHermesBridge
 from markus_sandbox import MarkusProcessSandbox
 from markus_router import MarkusIntentRouter
@@ -31,34 +32,27 @@ from markus_acoustic_synapse import MarkusAcousticSynapse
 from markus_complexity_governor import MarkusComplexityGovernor
 from markus_speculative_cache import MarkusSpeculativeCache
 from markus_prompt_matrix import MarkusPromptSynthesisMatrix
+from markus_obsidian_sync import MarkusObsidianSync
 from markus_capabilities import CapabilityRegistry
 from markus_capability_synthesizer import MarkusCapabilitySynthesizer
 from markus_thors import ThorsEngine, create_thors_tables
+from markus_ui_db import MarkusUIDatabase
+from markus_resilience import CircuitBreakerManager
+from markus_co_evolution import CoEvolutionOrchestrator
 
 logger = logging.getLogger("Markus.Server")
 
-def _ask_markus_brain(prompt: str, timeout_s: float = 120.0) -> str:
-    """Shell out to the markus Hermes profile (DeepSeek via Nous) for a real answer."""
-    import subprocess, os, shutil, re
-    env = dict(os.environ)
-    env["HERMES_HOME"] = "C:/Users/jonny/AppData/Local/hermes/profiles/markus"
-    exe = shutil.which("hermes") or "hermes"
-    cmd = [exe, "chat", "-q", f"MARKUS user intent: {prompt}. Reply directly and concisely.", "-p", "markus"]
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s, env=env, encoding="utf-8", errors="replace")
-        out = (proc.stdout or "") + (proc.stderr or "")
-        ansi = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-        skip = ("query:", "warning:", "initializing", "reasoning", "resume", "session:", "title:", "duration:", "messages:", "  hermes", "  markus", "◆", "─", "━", "markus user intent", "hermes --resume", "hermes -c")
-        candidates = [ansi.sub("", l).strip() for l in out.splitlines()]
-        candidates = [l for l in candidates if l and not l.lower().startswith(skip) and "MARKUS user intent" not in l and any(c.isalpha() for c in l)]
-        return candidates[-1] if candidates else f"(no reply from markus profile) rc={proc.returncode}"
-    except Exception as exc:
-        return f"(markus brain error: {exc})"
-
+def _ask_markus_brain(prompt: str, tier_category: str = "DEFAULT_BALANCED", timeout_s: float = 60.0) -> str:
+    """Direct Nous API brain call — Hermes-independent (Hermes shell-out retired 2026-08-26)."""
+    return ask_brain(prompt, model=route_brain_model(tier_category), timeout_s=timeout_s, tier=tier_category)
 # Global instances
 kernel = MarkusKernel()
+ui_db = MarkusUIDatabase()
+circuit_breaker = CircuitBreakerManager()
 bridge = MarkusHermesBridge(kernel)
 bridge.init_private_infra()
+kernel.memory.set_register("OS_STATUS", "BOOTED")  # server up == OS online
+obsidian_sync = MarkusObsidianSync(db=kernel.memory.db)  # L3 -> VORPAL Vault narrative bridge
 sandbox = MarkusProcessSandbox()
 router = MarkusIntentRouter()
 dice_engine = MarkusDiceEngine(cortex=kernel.memory.db)
@@ -108,12 +102,25 @@ def _readBody(self) -> str:
 
 
 class MarkusRequestHandler(BaseHTTPRequestHandler):
+    # CORS allowlist (loopback + local deck/UI origins). Requests from any
+    # other Origin are served WITHOUT the ACAO header, so browsers block the
+    # cross-origin read. Keeps local-first while dropping the wildcard "*".
+    _ALLOWED_ORIGINS = ("http://localhost:3000", "http://127.0.0.1:3000",
+                        "http://localhost:8128", "http://127.0.0.1:8128",
+                        "http://localhost:8080", "http://127.0.0.1:8080",
+                        "null")
+
     def _set_headers(self, status: int = 200, content_type: str = "application/json") -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin", "")
+        if origin in self._ALLOWED_ORIGINS or not origin:
+            # No Origin (curl / same-origin) or a trusted origin -> allow.
+            self.send_header("Access-Control-Allow-Origin", origin or "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
 
     def do_OPTIONS(self) -> None:
@@ -132,7 +139,16 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             return
         # [END THORS]
 
-        if self.path == "/" or self.path == "/ui" or self.path == "/nexus" or self.path == "/markus_nexus.html":
+        if self.path == "/" or self.path == "/ui-os" or self.path == "/markus_ui_os.html":
+            html_path = Path(__file__).parent / "markus_ui_os.html"
+            if html_path.exists():
+                content = html_path.read_bytes()
+                self._set_headers(200, "text/html; charset=utf-8")
+                self.wfile.write(content)
+            else:
+                self._set_headers(404)
+                self.wfile.write(b"<h1>404 - markus_ui_os.html not found</h1>")
+        elif self.path == "/nexus" or self.path == "/markus_nexus.html":
             html_path = Path(__file__).parent / "markus_nexus.html"
             if html_path.exists():
                 content = html_path.read_bytes()
@@ -159,6 +175,30 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
             else:
                 self._set_headers(404)
                 self.wfile.write(b"<h1>404 - markus-os.html not found</h1>")
+        elif self.path == "/api/ui/state":
+            components = [c.__dict__ for c in ui_db.list_components()]
+            unreads = [n.__dict__ for n in ui_db.get_unread_notifications()]
+            commands = ui_db.get_recent_commands(limit=10)
+            res = {
+                "status": "OK",
+                "components": components,
+                "unread_notifications": unreads,
+                "recent_commands": commands
+            }
+            self._set_headers(200)
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+        elif self.path.startswith("/api/cortex/search"):
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
+            params = urllib.parse.parse_qs(parsed.query)
+            q = params.get("q", [""])[0].strip()
+            limit = int(params.get("limit", [20])[0])
+            if q:
+                results = kernel.memory.db.search_thoughts(q, limit=limit)
+            else:
+                results = kernel.memory.db.get_recent_thoughts(limit=limit)
+            self._set_headers(200)
+            self.wfile.write(json.dumps({"status": "OK", "query": q, "count": len(results), "results": results}).encode("utf-8"))
         elif self.path == "/api/stream":
             # Server-Sent Events (SSE) Stream
             self.send_response(200)
@@ -236,7 +276,7 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 # Generate hash based on current kernel context
                 ihash = speculative_cache.generate_intent_hash(
                     intent_text, 
-                    {"kernel_state": kernel.kernel_state, "active_mode": kernel.mode}
+                    {"kernel_state": kernel.memory.get_register("OS_STATUS", "ACTIVE"), "active_mode": "EVOLVE"}
                 )
                 
                 speculative_cache.precompute_candidate(
@@ -291,6 +331,68 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                 "matrix": adaptive_matrix.get_matrix_state(),
                 "timestamp": time.time()
             }
+            self._set_headers(200)
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+
+        elif self.path == "/api/network/intel":
+            # Live transport snapshot from markus_network_intel (rebuild on demand).
+            try:
+                import markus_network_intel as _nintel
+                rep = _nintel.build_report(probe=True)
+                res = {
+                    "hostname": rep.hostname,
+                    "primary_connection_type": rep.primary_connection_type,
+                    "has_internet": rep.has_internet,
+                    "internet_latency_ms": rep.internet_latency_ms,
+                    "vpn_active": rep.vpn_active,
+                    "cellular_present": rep.cellular_present,
+                    "gateway_reachable": rep.gateway_reachable,
+                    "active_adapters": [
+                        {"name": a.name, "type": a.connection_type,
+                         "ipv4": a.ipv4, "gateway": a.gateway}
+                        for a in rep.active_adapters
+                    ],
+                    "timestamp": time.time()
+                }
+            except Exception as exc:
+                res = {"status": "ERROR", "error": str(exc)}
+            self._set_headers(200)
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+
+        elif self.path == "/api/vault/sync":
+            # Obsidian Palace Bridge — on-demand L3 -> vault flush
+            try:
+                digest = obsidian_sync.sync_daily_digest(limit=50)
+                live = obsidian_sync.append_new_thoughts()
+                res = {
+                    "status": "OK",
+                    "vault": str(obsidian_sync.vault_path),
+                    "digest": digest,
+                    "live": live,
+                }
+            except Exception as exc:
+                res = {"status": "ERROR", "error": str(exc)}
+            self._set_headers(200)
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+        elif self.path == "/api/goals":
+            # VORPAL goal DAG -> live route. Parsed on demand from
+            # EVOLVE/GOALS/GOALS.md via markus_vorpal_bridge; goal-state
+            # becomes a live surface instead of a client-tree fiction.
+            try:
+                import markus_vorpal_bridge as _vbridge
+                st = _vbridge.MarkusVorpalBridge().read_vorpal_status()
+                res = {
+                    "status": "OK",
+                    "goal_count": st.goal_count,
+                    "open_goal_count": st.open_goal_count,
+                    "implemented_goal_count": st.implemented_goal_count,
+                    "goal_pulse": st.goal_pulse,
+                    "source": str(_vbridge.GOALS_PATH),
+                    "parsed_at": st.parsed_at,
+                    "timestamp": time.time(),
+                }
+            except Exception as exc:
+                res = {"status": "ERROR", "error": str(exc)}
             self._set_headers(200)
             self.wfile.write(json.dumps(res).encode("utf-8"))
 
@@ -366,8 +468,17 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                     logger.debug(f"Ring buffer push error: {ring_err}")
 
                 # Route intent and build response
+                _t0 = time.time()
                 routed = router.route_intent(prompt)
-                response_text = _ask_markus_brain(prompt)
+                response_text = _ask_markus_brain(prompt, tier_category=routed.tier_category)
+                _latency_ms = round((time.time() - _t0) * 1000.0, 1)
+                # Feed post-dispatch telemetry back into the adaptive matrix so
+                # routing weights learn from real API traffic.
+                try:
+                    router.record_outcome(routed.target_model, _latency_ms,
+                                          success=bool(response_text))
+                except Exception as tel_err:
+                    logger.debug(f"Telemetry record error: {tel_err}")
 
                 # Broadcast real-time SSE event to all connected UI surfaces
                 broadcast_sse_event("intent", {
@@ -384,7 +495,11 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
                         "model": routed.target_model,
                         "tier": routed.tier_category,
                         "confidence": routed.confidence,
-                        "reason": routed.reason
+                        "reason": routed.reason,
+                        "latency_ms": _latency_ms,
+                        "matrix_advisory": routed.matrix_model,
+                        "matrix_weight": routed.matrix_weight,
+                        "network_down": routed.network_down
                     }
                 }
                 self._set_headers(200)
@@ -596,9 +711,11 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == "/api/dice/roll":
             try:
-                final_roll, rolls = dice_engine.run_single()
-                action_label = dice_engine.ACTIONS.get(final_roll, "UNKNOWN")
-                prompt = dice_engine.format_prompt(final_roll, roll_history=rolls)
+                final_roll = dice_engine.roll_cryptographic_dice()
+                d1, d2 = dice_engine.roll_dice_pair()
+                rolls = [d1, d2, final_roll]
+                action_label = dice_engine.get_action_label(final_roll)
+                prompt = f"MARKUS DICE: rolled {final_roll} -> {action_label} (sequence: {rolls})"
 
                 broadcast_sse_event("dice_roll", {
                     "final_roll": final_roll,
@@ -767,9 +884,49 @@ class MarkusRequestHandler(BaseHTTPRequestHandler):
         pass
 
 def run_server(port: int = 8128) -> None:
-    server_address = ("", port)
+    # Bind loopback only: the MARKUS API + SSE stream is a local-first control
+    # plane. An empty host ("") binds 0.0.0.0 (all interfaces), exposing it to
+    # the LAN. Override with MARKUS_HOST for intentional remote access.
+    import os as _os
+    host = _os.environ.get("MARKUS_HOST", "127.0.0.1")
+    server_address = (host, port)
     httpd = ThreadingHTTPServer(server_address, MarkusRequestHandler)
-    print(f"[MARKUS-OS] Live API & SSE Stream Server listening on http://localhost:{port}")
+    print(f"[MARKUS-OS] Live API & SSE Stream Server listening on http://{host}:{port}")
+    print(f"[MARKUS-OS] Obsidian Palace Bridge -> {obsidian_sync.vault_path}")
+
+    def _auto_vault_sync(interval_s: float = 300.0) -> None:
+        """Append new L3 thoughts to the VORPAL Vault journal and generate Canvas graphs periodically."""
+        try:
+            obsidian_sync.append_new_thoughts()  # immediate catch-up on boot
+            obsidian_sync.generate_canvas_graph()
+        except Exception as exc:
+            logger.warning(f"Vault boot sync failed: {exc}")
+        while True:
+            time.sleep(interval_s)
+            try:
+                obsidian_sync.append_new_thoughts()
+                obsidian_sync.generate_canvas_graph()
+            except Exception as exc:
+                logger.warning(f"Vault auto-sync failed: {exc}")
+
+    def _auto_co_evolution_daemon(interval_s: float = 300.0) -> None:
+        """Execute autonomous 7-phase co-evolution cycle periodically."""
+        co_evo = CoEvolutionOrchestrator(cortex=kernel.memory.db, dice_engine=dice_engine, kernel=kernel)
+        while True:
+            time.sleep(interval_s)
+            try:
+                asyncio.run(co_evo.execute_cycle())
+                broadcast_sse_event("co_evolution", {
+                    "status": "CYCLE_COMPLETE",
+                    "message": "Background co-evolution cycle executed successfully.",
+                    "timestamp": time.time()
+                })
+            except Exception as exc:
+                logger.warning(f"Co-evolution daemon cycle error: {exc}")
+
+    threading.Thread(target=_auto_vault_sync, daemon=True, name="VaultSyncDaemon").start()
+    threading.Thread(target=_auto_co_evolution_daemon, daemon=True, name="CoEvoDaemon").start()
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

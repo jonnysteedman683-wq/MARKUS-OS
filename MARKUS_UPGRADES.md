@@ -1,6 +1,53 @@
-# MARKUS OS: 10 Architectural & Capability Upgrades Roadmap
+# MARKUS OS: 11 Architectural & Capability Upgrades Roadmap
 
-This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent Operating System.
+This document outlines the 11 core upgrade paths for the MARKUS Autonomous Agent Operating System.
+
+---
+
+## Dice Cycle Log
+
+### 2026-08-26 · Direct Upgrade → `UPGRADE_ACOUSTIC_SYNAPSE` → Harmonic Web Audio Live
+- **Outcome:** Upgrade #8 shipped in the Command Deck (`markus-os.html`).
+  - **New acoustic profiles:** `BOOT`, `RUNNING`, `BLOCKED`, `TERMINATED`, `FAILED` added
+    alongside `DISPATCH`/`SUCCESS`/`PULSE`/`ERROR` — every kernel `ProcessState` now has a
+    distinct chord (frequencies mirror backend `markus_acoustic_synapse.py` presets).
+  - **Audible process transitions:** the 3s telemetry poller diffs per-PID state and fires
+    `playStateChime()` on any change — process lifecycle is now sonified, not just rendered.
+  - **Silent SSE made audible:** `handshake` plays a PULSE; `intent` broadcast plays DISPATCH.
+  - **Dead `ERROR` profile now used:** server-unreachable fallback fires the sawtooth dissonance.
+  - **Mute toggle:** `ACOUSTICS: SOUND ON / MUTED` pill in the system-stats HUD (was unclickable —
+    `.hud` had `pointer-events: none`, now overridden on `.system-stats`).
+  - **Autoplay-policy boot chime:** first `pointerdown` resumes `AudioContext` + plays BOOT chord.
+- **Verification:** JS extracted + `node --check` OK · live render in preview pane confirms the
+  toggle row + SSE handshake state (`STREAMING (LIVE)` / `ACOUSTICS: SOUND ON`) · server untouched.
+
+---
+
+### 2026-08-26 · Direct Upgrade → `UPGRADE_OBSIDIAN_PALACE` → Obsidian Palace Bridge Live
+- **Outcome:** Upgrade #7 wired into the running OS end-to-end.
+  - **Vault retarget:** sync now writes to the live `Documents/VORPAL Vault/Journal/Markus/`
+    (legacy `Obsidian Vault` kept only as fallback — frozen ref).
+  - **Append-only live stream:** new `append_new_thoughts()` writes each fresh L3 cortex
+    thought as a markdown bullet to `YYYY-MM-DD-MARKUS-LIVE.md`, gated by a
+    `VAULT_SYNC_LAST_TS` watermark in the cortex DB — idempotent across restarts, no dupes,
+    nothing rewritten.
+  - **Rolling digest:** `YYYY-MM-DD-MARKUS-CORTEX.md` regenerated (top-50 snapshot) on each sync.
+  - **Server wiring:** `GET /api/vault/sync` on-demand flush + boot-time catch-up + auto-sync
+    daemon (every 300s) started in `run_server()`.
+- **Verification:** py_compile OK · standalone sync drained 400+ thoughts in two batches ·
+  idempotency confirmed (run 2 = UP_TO_DATE/0 after watermark advance) · integration harness
+  **9/9** · server restarted on new code, `/api/vault/sync` → `{"status":"OK", "vault":"...VORPAL Vault"}`, live stream UP_TO_DATE.
+
+---
+
+### 2026-08-26 · Dice chain [6,6,3] → `UPGRADE_AI_AGENT` → Kanban Worker v1.1
+- **Outcome:** `markus_kanban_worker.py` modernized (real-body execution, schema sync, honest failure path).
+  - Executes the **real task body** in the sandbox (raw python or markdown-fenced) instead of a canned stub print.
+  - Syncs with the live kanban schema: `task_runs` records per attempt, `consecutive_failures`, `last_failure_error`, `max_retries`, `claim_lock`/`claim_expires`/`worker_pid`.
+  - **Atomic claim** (double-claim refused) + **stale-claim reaping** (`recover_stale_claims`) so crashed workers don't strand tasks in `in_progress`.
+  - **Honest outcomes:** SUCCESS only on exit 0; failures release for retry up to `max_retries`; non-code bodies report `NO_EXECUTABLE_PAYLOAD` instead of fake completion.
+- **Verification:** py_compile OK · self-test ALL GREEN (3 tasks: SUCCESS/FAILED/NO_EXECUTABLE_PAYLOAD, atomic claim, stale reap) · integration harness **9/9** · live router probe HTTP 200.
+- **Flagged (pre-existing, not in scope):** `_ask_markus_brain` hermes CLI bridge (`hermes chat -p markus`) times out at 120s.
 
 ---
 
@@ -43,7 +90,12 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 - **Upgrade:** Embed the `CircuitBreaker` resilience pattern from `PRIME-DIRECTIVE.md` into all outbound network and tool requests.
 - **Impact:** Automatic quarantine and state rollback when external APIs or bridge routes experience cascading failures.
 
-### 10. Swarm Mesh Node Discovery Protocol
+### 10. Enhanced Dice Engine (36 Actions)
+- **Upgrade:** Extended MARKUS DICE engine from 6-sided to 36-sided dual-dice system (`markus_dice_engine.py`).
+- **Impact:** 6x upgrade diversity with specific, well-defined actions. Each dice roll (1-36) triggers a targeted upgrade instead of generic "technical alternative" actions.
+- **Verification:** Stage 5 now logs specific action (e.g., `dice_roll: 33, action: PAYDOWN_TECH_DEBT`) instead of generic dice roll 1-5.
+
+### 11. Swarm Mesh Node Discovery Protocol
 - **Upgrade:** Implement lightweight UDP broadcast discovery enabling multiple MARKUS OS instances across desktop, laptop, and server nodes to form a unified mesh.
 - **Impact:** Distributed agent swarm compute with zero-configuration clustering.
 
@@ -59,8 +111,9 @@ This document outlines the 10 core upgrade paths for the MARKUS Autonomous Agent
 | **#4 Isolated Process Sandbox** (`markus_sandbox.py`) | **High (10/10)** | **Critical (9.5/10)** | Medium (Async subprocess) | **Complete & Verified** |
 | **#5 Multi-Model Intent Router** (`markus_router.py`) | **High (10/10)** | **High (8.5/10)** | Low (Heuristic Regex Triage) | **Complete & Verified** |
 | **#6 Bidirectional Kanban Worker** (`markus_kanban_worker.py`) | **High (10/10)** | **Critical (9/10)** | Medium (SQLite claim locks) | **Complete & Verified** |
-| **#7 Obsidian Palace Sync** (`markus_obsidian_sync.py`) | **High (10/10)** | **High (8/10)** | Low (Vault markdown writer) | **Next Queue** |
-| **#8 Harmonic Web Audio Synth** (`markus-os.html`) | **High (10/10)** | **Medium (7/10)** | Low (Browser Web Audio API) | **Next Queue** |
+| **#7 Obsidian Palace Sync** (`markus_obsidian_sync.py`) | **High (10/10)** | **High (8/10)** | Low (Vault markdown writer) | **Complete & Live** |
+| **#8 Harmonic Web Audio Synth** (`markus-os.html`) | **High (10/10)** | **Medium (7/10)** | Low (Browser Web Audio API) | **Complete & Live** |
 | **#9 Self-Healing Circuit Breaker** (`markus_resilience.py`) | **High (9/10)** | **Critical (9.5/10)** | Medium (Stateful backoff) | **Queued** |
 | **#10 Swarm Mesh UDP Discovery** (`markus_mesh.py`) | **Medium (7.5/10)** | **High (8.5/10)** | High (Cross-subnet UDP/LAN) | **Queued** |
+| **#11 Enhanced Dice Engine** (`markus_dice_engine.py`) | **High (10/10)** | **High (9/10)** | Medium (36-action dispatch map) | **Complete & Verified** |
 

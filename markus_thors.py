@@ -165,6 +165,10 @@ class ThorsEngine:
     DEFAULT_RATE_LIMIT_HIGH = 100    # per 60s before Level 3
     DEFAULT_MASS_PROBE_THRESHOLD = 3  # distinct suspicious paths in 60s
 
+    # Loopback IPs are the trusted operator's own machine (server binds 127.0.0.1).
+    # Exempt them from Thor analysis so local tooling can't self-trip the firewall.
+    TRUSTED_IPS = {"127.0.0.1", "::1"}
+
     # Retaliation durations (seconds)
     THOR_DURATIONS = {
         ThorClass.LIGHTNING: 60,
@@ -240,6 +244,8 @@ class ThorsEngine:
 
     def _is_ip_blocked(self, ip: str) -> bool:
         """Check if an IP is currently under a Thor block."""
+        if ip in self.TRUSTED_IPS:
+            return False
         expiry = self._blocked_ips.get(ip, 0)
         if expiry > time.time():
             return True
@@ -330,6 +336,18 @@ class ThorsEngine:
         Call this from your request handler BEFORE processing the request.
         If the verdict indicates a threat, call retaliate() to apply countermeasures.
         """
+
+        # Trusted loopback bypass: operator's own machine, never analyzed.
+        if client_ip in self.TRUSTED_IPS:
+            return AttackVerdict(
+                threat_level=0,
+                attack_type=None,
+                thor_class=ThorClass.LIGHTNING,
+                confidence=1.0,
+                fingerprint={"ip": client_ip, "reason": "trusted_loopback"},
+                retaliation_needed=False,
+                reason="Trusted loopback IP — exempt from Thor analysis",
+            )
 
         # Early block check
         if self._is_ip_blocked(client_ip):

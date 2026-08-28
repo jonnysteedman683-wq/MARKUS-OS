@@ -26,6 +26,15 @@
 | **LAO (NeurIPS 2024)** | Adaptive planning depth based on task complexity | Complexity estimator, depth controller, horizon adjustment |
 | **Metacognitive Control (ACL 2025)** | Monitor confidence → seek info when uncertain | Confidence estimator, uncertainty-based info gathering |
 
+## ✅ Status: Implemented
+
+All three loops verified by `hermes_verify_evolution_loops.py` — stdlib-only harness,
+8/8 gates pass, exit 0 (compile gate + self-tests + contract checks).
+
+- **Reflexion Loop (`markus_reflexion.py`)**: Passes self-test (`_test_reflexion`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6b).
+- **Population Dice Evolution (`markus_population_dice.py`)**: Passes self-test (`_test_population_dice`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6c).
+- **Red Team Adversarial Loop (`markus_redteam.py`)**: Passes self-test (`_test_redteam`). Wired into live co-evolution cycle (`CoEvolutionOrchestrator` Phase 6d).
+
 ## 🚀 Implementation Plan (3 Priority Loops)
 
 ### 1. Reflexion Loop (markus_reflexion.py) — PRIORITY 1
@@ -157,4 +166,229 @@ patterns = {
 
 ---
 
-**Status:** Research phase complete. Awaiting web access for deeper paper/code analysis before implementation.
+**Status:** Implemented — see the "✅ Status: Implemented" section at the top of this file.
+
+---
+
+## 🔬 Dice Engine Research Run — 2026-08-26 (Duo Dice cycle)
+
+**Source:** `markus_web_research.py` (WebResearchEngine) — run `PASSED` via dice engine slot 5 (RESEARCH_MARKUS_ROADMAP).
+
+### Topics researched (3)
+
+| Topic | Findings | Coverage | Improvement Opportunity | Effort |
+|:---|:---|:---|:---|:---|
+| `autonomous_agent_loop` | AutoGPT goal decomposition → task queue; BabyAGI priority queue; SWE-agent terminal+browser loop; Reflexion self-reflection; DevSwarm strange-loop healing; EvoAgentX topology adaptation | High (dice engine + debate pipeline) | Add hierarchical task decomposition | Medium |
+| `swarm_intelligence` | UDP gossip + Lamport vector clocks; TCP reliability layer; ant-colony task assignment; particle-swarm tuning; RAFT consensus; φ-accrual failure detection | Medium (UDP gossip replication) | Add RAFT consensus + failure detection | High |
+| `multi_model_routing` | vLLM PagedAttention; TGI continuous batching; Ollama local serving; OpenRouter performance routing; adaptive reliability scoring; confidence triage (≥0.8 hermes / ≥0.5 ollama / <0.5 nous) | Medium (adaptive matrix) | Real-time reliability scoring | Low |
+
+### Actionable next steps (from research)
+1. **multi_model_routing (LOW effort, highest ROI)** — wire real-time reliability scoring into `markus_adaptive_matrix.py`; reuse confidence-triage thresholds already proven in the triage layer.
+2. **autonomous_agent_loop (MEDIUM)** — add a hierarchical task-decomposition stage in front of the DAG (`markus_hierarchical_decomposer.py` already exists; connect it to the dice action queue).
+3. **swarm_intelligence (HIGH)** — defer RAFT/φ-accrual until after the two above; keep UDP gossip as-is.
+
+**Run evidence:** `python markus_web_research.py` → `✅ Web Research Engine Test: PASSED` (exit 0), 5 findings per topic, feasibility assessed for all 3.
+## 2026-08-26T18:09:08+1000 — Dice Research Slot: multi_model_routing
+Live web findings: no
+
+## Improvement Proposal: Multi Model Routing
+
+### Current MARKUS Coverage
+Medium - Adaptive matrix
+
+### Key Findings from Research
+- vLLM: High-throughput LLM inference with PagedAttention
+- TGI: HuggingFace Text Generation Inference with continuous batching
+- Ollama: Local model serving with ModELFUSE pipeline
+
+### Identified Tradeoffs
+
+
+### Proposed Enhancement
+Real-time reliability scoring
+
+### Effort Estimate
+Low
+
+### Next Steps
+1. Create implementation plan for Real-time reliability scoring
+2. Generate PHOENIX CLI module for AST validation
+3. Test with existing test suite
+4. Commit with conventional commit format
+
+## 2026-08-26T18:10:11+1000 — Dice Research Slot: multi_model_routing
+Live web findings: yes
+
+## Improvement Proposal: Multi Model Routing
+
+### Current MARKUS Coverage
+Medium - Adaptive matrix
+
+### Key Findings from Research
+- vLLM: High-throughput LLM inference with PagedAttention
+- TGI: HuggingFace Text Generation Inference with continuous batching
+- Ollama: Local model serving with ModELFUSE pipeline
+
+### Identified Tradeoffs
+
+
+### Proposed Enhancement
+Real-time reliability scoring
+
+### Effort Estimate
+Low
+
+### Next Steps
+1. Create implementation plan for Real-time reliability scoring
+2. Generate PHOENIX CLI module for AST validation
+3. Test with existing test suite
+4. Commit with conventional commit format
+
+## 2026-08-26T18:10:52+1000 — Dice Research Slot: multi_model_routing
+Live web findings: yes
+
+### All findings (8)
+- vLLM: High-throughput LLM inference with PagedAttention
+- TGI: HuggingFace Text Generation Inference with continuous batching
+- Ollama: Local model serving with ModELFUSE pipeline
+- OpenRouter: Unified API with performance-based routing
+- Adaptive Model Switcher: Real-time reliability scoring
+- LangGraph: de facto 2026 standard for production multi-agent - stateful graphs, durable execution, HITL
+- Microsoft Agent Framework: conversation + graph-based routing, Azure telemetry
+- CrewAI: role-based crews, rapid prototyping, open source
+
+## Improvement Proposal: Multi Model Routing
+
+### Current MARKUS Coverage
+Medium - Adaptive matrix
+
+### Key Findings from Research
+- vLLM: High-throughput LLM inference with PagedAttention
+- TGI: HuggingFace Text Generation Inference with continuous batching
+- Ollama: Local model serving with ModELFUSE pipeline
+
+### Identified Tradeoffs
+
+
+### Proposed Enhancement
+Real-time reliability scoring
+
+### Effort Estimate
+Low
+
+### Next Steps
+1. Create implementation plan for Real-time reliability scoring
+2. Generate PHOENIX CLI module for AST validation
+3. Test with existing test suite
+4. Commit with conventional commit format
+
+## 2026-08-26T18:36:14+1000 — Dice Research Slot: multi_model_routing
+Live web findings: yes
+
+### All findings (8)
+- vLLM: High-throughput LLM inference with PagedAttention
+- TGI: HuggingFace Text Generation Inference with continuous batching
+- Ollama: Local model serving with ModELFUSE pipeline
+- OpenRouter: Unified API with performance-based routing
+- Adaptive Model Switcher: Real-time reliability scoring
+- RouteLLM (ICLR 2025): learned complexity router achieves 95% of frontier quality routing only 14-26% of requests to expensive model - 75-85% cost cut
+- 70/20/10 distribution: route 70% to cheap flash ($0.30/M), 20% to mid ($3/M), 10% to frontier ($15/M) - ~86% cost reduction on routed traffic
+- FrugalGPT cascade (2023): cheapest model first, escalate on scorer rejection - up to 98% lower cost at matched quality
+
+## Improvement Proposal: Multi Model Routing
+
+### Current MARKUS Coverage
+Medium - Adaptive matrix
+
+### Key Findings from Research
+- vLLM: High-throughput LLM inference with PagedAttention
+- TGI: HuggingFace Text Generation Inference with continuous batching
+- Ollama: Local model serving with ModELFUSE pipeline
+
+### Identified Tradeoffs
+
+
+### Proposed Enhancement
+Real-time reliability scoring
+
+### Effort Estimate
+Low
+
+### Next Steps
+1. Create implementation plan for Real-time reliability scoring
+2. Generate PHOENIX CLI module for AST validation
+3. Test with existing test suite
+4. Commit with conventional commit format
+
+## 2026-08-26T18:48:07+1000 — Dice Research Slot: phone_unlocking
+Live web findings: yes
+
+### All findings (8)
+- Carrier/network unlock is legally REQUIRED (US FCC + CTIA Consumer Code): carriers must unlock free once device is fully paid / early-termination fee settled
+- CTIA policy: postpaid unlock on request for customers in good standing after contract/financing fulfilled; prepaid unlock no later than 1yr after activation
+- How to check lock status: iPhone Settings>General>About 'Carrier Lock' shows 'No SIM restrictions' = unlocked; Samsung Settings>Connections>Mobile networks>Network operators (list appears = unlocked); dial *#06# for IMEI
+- T-Mobile auto-unlocks within ~2 days of eligibility (paid off + 40+ days on network); request via unlock page/app or call 611 / 800-937-8997; caps ~2 devices/year
+- eSIM (all iPhones since 2018, many Android) removes the physical-SIM step for switching carriers
+- Forgotten passcode recovery is OFFICIAL but data-wiping: iOS = Passcode Reset then recovery mode + computer reset (Apple); Android = Google Find My Device remote unlock/factory reset + Google-account verification
+- Forgotten-passcode unlock resets the device (data loss) - the honest tradeoff; no method recovers data without the passcode on modern devices
+- Scope: these are the legal paths for phones you own. Bypassing a device you don't own (stolen/lost FRP or Activation-Lock) is not covered.
+
+## Improvement Proposal: Phone Unlocking
+
+### Current MARKUS Coverage
+Unknown
+
+### Key Findings from Research
+- Carrier/network unlock is legally REQUIRED (US FCC + CTIA Consumer Code): carriers must unlock free once device is fully paid / early-termination fee settled
+- CTIA policy: postpaid unlock on request for customers in good standing after contract/financing fulfilled; prepaid unlock no later than 1yr after activation
+- How to check lock status: iPhone Settings>General>About 'Carrier Lock' shows 'No SIM restrictions' = unlocked; Samsung Settings>Connections>Mobile networks>Network operators (list appears = unlocked); dial *#06# for IMEI
+
+### Identified Tradeoffs
+- Forgotten-passcode unlock resets the device (data loss) - the honest tradeoff; no method recovers data without the passcode on modern devices
+
+### Proposed Enhancement
+Research needed
+
+### Effort Estimate
+Unknown
+
+### Next Steps
+1. Create implementation plan for Research needed
+2. Generate PHOENIX CLI module for AST validation
+3. Test with existing test suite
+4. Commit with conventional commit format
+
+## 2026-08-26T20:35:55+1000 — Dice Research Slot: swarm_intelligence
+Live web findings: no
+
+### All findings (5)
+- UDP gossip protocols with Lamport vector clocks for consistency
+- TCP reliability layer for message delivery guarantees
+- Ant colony optimization for distributed task assignment
+- Particle swarm optimization for parameter tuning
+- RAFT consensus for distributed state machine replication
+
+## Improvement Proposal: Swarm Intelligence
+
+### Current MARKUS Coverage
+Medium - UDP gossip replication
+
+### Key Findings from Research
+- UDP gossip protocols with Lamport vector clocks for consistency
+- TCP reliability layer for message delivery guarantees
+- Ant colony optimization for distributed task assignment
+
+### Identified Tradeoffs
+
+
+### Proposed Enhancement
+RAFT consensus, failure detection
+
+### Effort Estimate
+High
+
+### Next Steps
+1. Create implementation plan for RAFT consensus, failure detection
+2. Generate PHOENIX CLI module for AST validation
+3. Test with existing test suite
+4. Commit with conventional commit format

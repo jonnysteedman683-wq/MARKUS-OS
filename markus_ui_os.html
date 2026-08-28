@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MARKUS OS — Autonomous Desktop Operating System</title>
+<style>
+  :root {
+    --cyan: #00f0ff;
+    --emerald: #00ff88;
+    --magenta: #ff0077;
+    --amber: #ffaa00;
+    --bg-dark: #030712;
+    --bg-panel: rgba(7, 16, 38, 0.85);
+    --bg-window: rgba(10, 22, 48, 0.95);
+    --border-dim: rgba(0, 240, 255, 0.22);
+    --border-glow: rgba(0, 240, 255, 0.55);
+    --ink: #e0f2fe;
+    --dim: rgba(224, 242, 254, 0.55);
+    --faint: rgba(224, 242, 254, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-dark);
+    font-family: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+    color: var(--ink);
+    user-select: none;
+  }
+
+  /* Desktop Background grid pattern */
+  #desktop {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: 
+      radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, transparent 70%),
+      linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+    z-index: 1;
+  }
+
+  /* Top System Status Bar */
+  #topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 42px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border-dim);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 12px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 0.15em;
+  }
+
+  .brand .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    background: rgba(0, 255, 136, 0.15);
+    border: 1px solid var(--emerald);
+    color: var(--emerald);
+    border-radius: 4px;
+  }
+
+  /* Scrolling Thought Ticker */
+  #ticker-container {
+    flex: 1;
+    margin: 0 24px;
+    height: 26px;
+    background: rgba(0, 240, 255, 0.04);
+    border: 1px solid var(--border-dim);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 11px;
+    color: var(--emerald);
+  }
+
+  #ticker-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.05em;
+  }
+
+  .top-telemetry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .stat-pill {
+    padding: 4px 10px;
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid var(--border-dim);
+    border-radius: 6px;
+    color: var(--dim);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .stat-pill:hover {
+    border-color: var(--cyan);
+    color: var(--ink);
+  }
+
+  .stat-pill.active {
+    color: var(--emerald);
+    border-color: var(--emerald);
+  }
+
+  /* Desktop App Icons Grid */
+  #app-grid {
+    position: absolute;
+    top: 60px;
+    left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 10;
+  }
+
+  .app-icon {
+    width: 84px;
+    height: 84px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dim);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .app-icon:hover {
+    transform: translateY(-2px);
+    border-color: var(--cyan);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+  }
+
+  .app-icon svg {
+    width: 28px;
+    height: 28px;
+    fill: none;
+    stroke: var(--cyan);
+    stroke-width: 2;
+  }
+
+  .app-icon label {
+    font-size: 10px;
+    color: var(--ink);
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  /* Desktop Window Containers */
+  .os-window {
+    position: absolute;
+    background: var(--bg-window);
+    border: 1px solid var(--border-dim);
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 360px;
+    min-height: 240px;
+    z-index: 100;
+  }
+
+  .os-window.active {
+    border-color: var(--border-glow);
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+  }
+
+  .os-window.minimized {
+    display: none !important;
+  }
+
+  /* Window Titlebar */
+  .window-titlebar {
+    height: 36px;
+    background: rgba(5, 12, 28, 0.9);
+    border-bottom: 1px solid var(--border-dim);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    cursor: move;
+  }
+
+  .window-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .window-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .win-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: #000;
+    font-weight: bold;
+    opacity: 0.8;
+  }
+
+  .win-btn:hover { opacity: 1; }
+  .win-btn.close { background: #ff5f56; }
+  .win-btn.min { background: #ffbd2e; }
+  .win-btn.max { background: #27c93f; }
+
+  .window-content {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+  }
+
+  .window-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+  }
+
+  /* Bottom Dock / Taskbar */
+  #taskbar {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 48px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dim);
+    border-radius: 24px;
+    backdrop-filter: blur(16px);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .taskbar-item {
+    padding: 6px 14px;
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid var(--border-dim);
+    border-radius: 14px;
+    font-size: 11px;
+    color: var(--dim);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .taskbar-item:hover, .taskbar-item.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0, 240, 255, 0.18);
+  }
+</style>
+</head>
+<body>
+
+<div id="desktop">
+  <!-- Top Bar -->
+  <div id="topbar">
+    <div class="brand">
+      <span>MARKUS UI OS</span>
+      <span class="badge">ONLINE</span>
+    </div>
+
+    <!-- Live Telemetry Stream Ticker -->
+    <div id="ticker-container">
+      <div id="ticker-text">⚡ Telemetry stream initialized. Awaiting live cortex thoughts...</div>
+    </div>
+
+    <div class="top-telemetry">
+      <div class="stat-pill" id="btn-layout" onclick="cycleLayout()">LAYOUT: FLOATING</div>
+      <div class="stat-pill active" id="btn-sound" onclick="toggleAudio()">ACOUSTICS: SOUND ON</div>
+      <div class="stat-pill" id="stream-status">SSE: CONNECTING...</div>
+      <div class="stat-pill" id="clock">00:00:00</div>
+    </div>
+  </div>
+
+  <!-- Desktop App Icons -->
+  <div id="app-grid">
+    <div class="app-icon" onclick="openApp('deck')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      <label>Command Deck</label>
+    </div>
+    <div class="app-icon" onclick="openApp('chat')">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <label>Cyber Chat</label>
+    </div>
+    <div class="app-icon" onclick="openApp('console')">
+      <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <label>Hack Console</label>
+    </div>
+    <div class="app-icon" onclick="openApp('cortex')">
+      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg>
+      <label>Cortex Explorer</label>
+    </div>
+    <div class="app-icon" onclick="openApp('search')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <label>Cortex Search</label>
+    </div>
+  </div>
+
+  <!-- Application Windows Container -->
+  <div id="windows-root"></div>
+
+  <!-- Taskbar -->
+  <div id="taskbar">
+    <div class="taskbar-item active" onclick="openApp('deck')">Command Deck</div>
+    <div class="taskbar-item" onclick="openApp('chat')">Cyber Chat</div>
+    <div class="taskbar-item" onclick="openApp('console')">Hack Console</div>
+    <div class="taskbar-item" onclick="openApp('cortex')">Cortex Explorer</div>
+    <div class="taskbar-item" onclick="openApp('search')">Cortex Search</div>
+  </div>
+</div>
+
+<script>
+  let highestZ = 100;
+  let audioMuted = false;
+  let currentLayout = 'FLOATING'; // FLOATING, SPLIT, GRID
+  const windows = {};
+
+  const APP_CONFIGS = {
+    deck: { title: 'MARKUS Command Deck', url: '/markus-os.html', width: 960, height: 600, x: 120, y: 70 },
+    chat: { title: 'MARKUS Cyber Chat', url: '/markus-chat.html', width: 720, height: 520, x: 220, y: 120 },
+    console: { title: 'MARKUS Hack Console', url: '/hack-console.html', width: 680, height: 460, x: 300, y: 160 },
+    cortex: { title: 'Cortex Memory Explorer', url: '/api/ui/state', width: 600, height: 400, x: 360, y: 200 },
+    search: {
+      title: 'Cortex FTS5 Search & Timeline Explorer',
+      width: 720,
+      height: 480,
+      x: 260,
+      y: 110,
+      html: `
+        <div style="padding: 16px; height: 100%; display: flex; flex-direction: column; gap: 12px; background: #030712; color: #00f0ff; font-family: monospace;">
+          <div style="display: flex; gap: 8px;">
+            <input id="cortex-search-input" type="text" placeholder="Search Cortex DB (FTS5 query e.g. router, goal, IPC)..." style="flex: 1; padding: 8px 12px; background: rgba(5,12,28,0.9); border: 1px solid #00f0ff; color: #00f0ff; font-family: monospace; border-radius: 4px; outline: none;" onkeydown="if(event.key==='Enter') runCortexSearch()">
+            <button onclick="runCortexSearch()" style="padding: 8px 16px; background: #00f0ff; color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;">SEARCH</button>
+          </div>
+          <div id="cortex-search-status" style="font-size: 11px; opacity: 0.7;">Enter query and click SEARCH...</div>
+          <div id="cortex-search-results" style="flex: 1; overflow-y: auto; border: 1px solid rgba(0,240,255,0.2); padding: 10px; background: rgba(0,0,0,0.4); border-radius: 4px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="opacity: 0.5;">Enter search term or click SEARCH to query recent thoughts.</div>
+          </div>
+        </div>
+      `
+    }
+  };
+
+  // --- Web Audio Acoustic Synapse ---
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playTone(freqs, durationMs = 300, type = 'sine') {
+    if (audioMuted) return;
+    try {
+      initAudio();
+      if (!audioCtx) return;
+      freqs.forEach(freq => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (durationMs / 1000));
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + (durationMs / 1000));
+      });
+    } catch (e) {}
+  }
+
+  function playChime(profile) {
+    if (profile === 'BOOT') playTone([220, 440, 660], 400);
+    else if (profile === 'PULSE') playTone([440, 554], 150);
+    else if (profile === 'DISPATCH') playTone([523, 659, 783], 250);
+    else if (profile === 'SUCCESS') playTone([440, 554, 659, 880], 500);
+    else if (profile === 'ERROR') playTone([150, 212], 400, 'sawtooth');
+  }
+
+  // --- Real-Time SSE Ticker & Stream ---
+  function initSSE() {
+    const statusElem = document.getElementById('stream-status');
+    const tickerText = document.getElementById('ticker-text');
+
+    const sse = new EventSource('/api/stream');
+
+    sse.onopen = () => {
+      statusElem.innerText = 'SSE: LIVE (0ms)';
+      statusElem.classList.add('active');
+      playChime('BOOT');
+    };
+
+    sse.addEventListener('handshake', (e) => {
+      playChime('PULSE');
+    });
+
+    sse.addEventListener('thought', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        tickerText.innerText = `🧠 [${data.agent || 'CORTEX'}]: ${data.content || 'Thought recorded'}`;
+        playChime('PULSE');
+      } catch (err) {}
+    });
+
+    sse.addEventListener('co_evolution', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        tickerText.innerText = `🧬 [CO-EVOLUTION]: ${data.message || 'Cycle executed'}`;
+        playChime('SUCCESS');
+      } catch (err) {}
+    });
+
+    sse.onerror = () => {
+      statusElem.innerText = 'SSE: RECONNECTING';
+      statusElem.classList.remove('active');
+    };
+  }
+
+  function updateClock() {
+    const d = new Date();
+    document.getElementById('clock').innerText = d.toTimeString().split(' ')[0];
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function toggleAudio() {
+    audioMuted = !audioMuted;
+    const btn = document.getElementById('btn-sound');
+    btn.innerText = audioMuted ? 'ACOUSTICS: MUTED' : 'ACOUSTICS: SOUND ON';
+    btn.classList.toggle('active', !audioMuted);
+    if (!audioMuted) playChime('PULSE');
+  }
+
+  function cycleLayout() {
+    const layouts = ['FLOATING', '2-COLUMN', '4-GRID'];
+    const idx = (layouts.indexOf(currentLayout) + 1) % layouts.length;
+    currentLayout = layouts[idx];
+    document.getElementById('btn-layout').innerText = `LAYOUT: ${currentLayout}`;
+    applyLayout(currentLayout);
+    playChime('DISPATCH');
+  }
+
+  function applyLayout(layout) {
+    const activeWins = Object.values(windows).filter(w => !w.classList.contains('minimized'));
+    if (activeWins.length === 0) return;
+
+    if (layout === '2-COLUMN') {
+      const colW = Math.floor((window.innerWidth - 60) / 2);
+      const rowH = Math.floor((window.innerHeight - 120) / Math.ceil(activeWins.length / 2));
+      activeWins.forEach((win, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        win.style.left = `${30 + col * (colW + 10)}px`;
+        win.style.top = `${55 + row * (rowH + 10)}px`;
+        win.style.width = `${colW}px`;
+        win.style.height = `${rowH}px`;
+      });
+    } else if (layout === '4-GRID') {
+      const w = Math.floor((window.innerWidth - 60) / 2);
+      const h = Math.floor((window.innerHeight - 130) / 2);
+      activeWins.slice(0, 4).forEach((win, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        win.style.left = `${30 + col * (w + 10)}px`;
+        win.style.top = `${55 + row * (h + 10)}px`;
+        win.style.width = `${w}px`;
+        win.style.height = `${h}px`;
+      });
+    }
+  }
+
+  function bringToFront(winId) {
+    highestZ += 1;
+    const win = document.getElementById(`win-${winId}`);
+    if (win) {
+      win.style.zIndex = highestZ;
+      document.querySelectorAll('.os-window').forEach(w => w.classList.remove('active'));
+      win.classList.add('active');
+    }
+  }
+
+  function openApp(appId) {
+    initAudio();
+    if (windows[appId]) {
+      const win = document.getElementById(`win-${appId}`);
+      win.classList.remove('minimized');
+      bringToFront(appId);
+      playChime('PULSE');
+      return;
+    }
+
+    const cfg = APP_CONFIGS[appId];
+    if (!cfg) return;
+
+    const win = document.createElement('div');
+    win.id = `win-${appId}`;
+    win.className = 'os-window active';
+    win.style.width = `${cfg.width}px`;
+    win.style.height = `${cfg.height}px`;
+    win.style.left = `${cfg.x}px`;
+    win.style.top = `${cfg.y}px`;
+    highestZ += 1;
+    win.style.zIndex = highestZ;
+
+    win.innerHTML = `
+      <div class="window-titlebar" onmousedown="startDrag(event, '${appId}')">
+        <div class="window-title">${cfg.title}</div>
+        <div class="window-controls">
+          <button class="win-btn min" onclick="minimizeApp('${appId}')"></button>
+          <button class="win-btn max" onclick="maximizeApp('${appId}')"></button>
+          <button class="win-btn close" onclick="closeApp('${appId}')"></button>
+        </div>
+      </div>
+      <div class="window-content">
+        ${cfg.html ? cfg.html : `<iframe src="${cfg.url}"></iframe>`}
+      </div>
+    `;
+
+    win.addEventListener('mousedown', () => bringToFront(appId));
+    document.getElementById('windows-root').appendChild(win);
+    windows[appId] = win;
+    playChime('DISPATCH');
+
+    if (currentLayout !== 'FLOATING') {
+      applyLayout(currentLayout);
+    }
+  }
+
+  function closeApp(appId) {
+    const win = document.getElementById(`win-${appId}`);
+    if (win) {
+      win.remove();
+      delete windows[appId];
+      playChime('PULSE');
+    }
+  }
+
+  function minimizeApp(appId) {
+    const win = document.getElementById(`win-${appId}`);
+    if (win) {
+      win.classList.add('minimized');
+    }
+  }
+
+  function maximizeApp(appId) {
+    const win = document.getElementById(`win-${appId}`);
+    if (!win) return;
+    if (win.dataset.maximized === 'true') {
+      win.style.width = win.dataset.origW;
+      win.style.height = win.dataset.origH;
+      win.style.left = win.dataset.origX;
+      win.style.top = win.dataset.origY;
+      win.dataset.maximized = 'false';
+    } else {
+      win.dataset.origW = win.style.width;
+      win.dataset.origH = win.style.height;
+      win.dataset.origX = win.style.left;
+      win.dataset.origY = win.style.top;
+      win.style.left = '10px';
+      win.style.top = '50px';
+      win.style.width = 'calc(100vw - 20px)';
+      win.style.height = 'calc(100vh - 120px)';
+      win.dataset.maximized = 'true';
+    }
+  }
+
+  let dragTarget = null;
+  let offsetX = 0, offsetY = 0;
+
+  function startDrag(e, appId) {
+    dragTarget = document.getElementById(`win-${appId}`);
+    bringToFront(appId);
+    offsetX = e.clientX - dragTarget.offsetLeft;
+    offsetY = e.clientY - dragTarget.offsetTop;
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', stopDrag);
+  }
+
+  function onDrag(e) {
+    if (dragTarget) {
+      dragTarget.style.left = `${e.clientX - offsetX}px`;
+      dragTarget.style.top = `${e.clientY - offsetY}px`;
+    }
+  }
+
+  function stopDrag() {
+    dragTarget = null;
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', stopDrag);
+  }
+
+  function escapeHtml(str) {
+    return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  async function runCortexSearch() {
+    const input = document.getElementById('cortex-search-input');
+    const query = input ? input.value.trim() : '';
+    const statusEl = document.getElementById('cortex-search-status');
+    const resultsEl = document.getElementById('cortex-search-results');
+    if (statusEl) statusEl.innerText = `Searching Cortex FTS5 for "${query || 'recent'}"...`;
+    playChime('DISPATCH');
+    try {
+      const res = await fetch(`/api/cortex/search?q=${encodeURIComponent(query)}&limit=25`);
+      const data = await res.json();
+      if (statusEl) statusEl.innerText = `Found ${data.count} matching thoughts for "${query || 'recent'}"`;
+      if (resultsEl) {
+        resultsEl.innerHTML = '';
+        if (!data.results || data.results.length === 0) {
+          resultsEl.innerHTML = '<div style="opacity: 0.5;">No thoughts matched the FTS5 query.</div>';
+          return;
+        }
+        data.results.forEach(t => {
+          const card = document.createElement('div');
+          card.style.cssText = 'padding: 8px; background: rgba(0,240,255,0.05); border-left: 3px solid #00f0ff; font-size: 12px; margin-bottom: 4px;';
+          const timeStr = new Date(t.created_at * 1000).toLocaleTimeString();
+          card.innerHTML = `<div style="display:flex; justify-content:space-between; opacity:0.8; font-size:10px; margin-bottom:4px;"><span style="color:#00f0ff">${t.entry_id} · <b>${t.agent}</b></span><span style="opacity:0.6">${timeStr}</span></div><div style="color:#e2e8f0; line-height:1.4;">${escapeHtml(t.content)}</div>`;
+          resultsEl.appendChild(card);
+        });
+      }
+      playChime('SUCCESS');
+    } catch (err) {
+      if (statusEl) statusEl.innerText = `Search error: ${err.message}`;
+      playChime('ERROR');
+    }
+  }
+
+  document.body.addEventListener('pointerdown', () => initAudio(), { once: true });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    openApp('deck');
+    initSSE();
+  });
+</script>
+</body>
+</html>

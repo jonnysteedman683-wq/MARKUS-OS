@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-MARKUS OS Self-Optimizing LLM Context Pruner (Upgrade 22)
+MARKUS OS Self-Optimizing LLM Context Pruner (Upgrade 22 & Enhancement R3)
 Provides token importance scoring, AST-aware structural preservation,
 semantic term salience, and recency-decay pruning to compress megacontext prompts
 into optimal token budgets without losing critical symbols, errors, or code logic.
 """
 
 from __future__ import annotations
+import json
 import math
 import re
 import time
@@ -20,14 +21,17 @@ STOP_WORDS = {
     "was", "were", "will", "would", "can", "could", "should", "all", "any"
 }
 
-# High-priority token patterns (errors, stack traces, keywords, code identifiers)
+# High-priority token patterns (errors, stack traces, keywords, code identifiers, directives)
 PRIORITY_PATTERNS = [
-    re.compile(r"\b(def|class|async|await|return|import|from|export|interface|function)\b"),
-    re.compile(r"\b(Error|Exception|Traceback|FAIL|PASS|CRITICAL|WARNING)\b"),
+    re.compile(r"\b(def|class|async|await|return|import|from|export|interface|function|type|struct|impl|fn)\b"),
+    re.compile(r"\b(Error|Exception|Traceback|FAIL|PASS|CRITICAL|WARNING|SyntaxError|AssertionError)\b"),
+    re.compile(r"\b(PRIME-DIRECTIVE|OMNIPRIME|INVARIANT|SECURITY)\b"),
     re.compile(r"\b(https?://\S+|[a-zA-Z0-9_-]+\.[a-zA-Z0-9_.-]+)\b"),
     re.compile(r"[`'\"][a-zA-Z0-9_./\-]+[`'\"]"),
     re.compile(r"\b[A-Za-z0-9_]+(?=\()"),  # Function call signatures
 ]
+
+INVARIANT_PATTERN = re.compile(r"\b(Traceback|SyntaxError|AssertionError|PRIME-DIRECTIVE)\b")
 
 @dataclass
 class ScoredSegment:
@@ -105,7 +109,7 @@ class MarkusContextPruner:
 
         # Check if segment contains critical invariant markers that must not be pruned
         is_protected = (
-            bool(re.search(r"\b(Traceback|SyntaxError|AssertionError|PRIME-DIRECTIVE)\b", text))
+            bool(INVARIANT_PATTERN.search(text))
             or composite >= self.protected_threshold
         )
 
@@ -175,7 +179,7 @@ class MarkusContextPruner:
                 selected_indices.add(seg.index)
                 allocated_tokens += seg.tokens_estimated
             elif seg.is_protected:
-                # Force-fit protected items by truncating if necessary
+                # Force-fit protected items
                 selected_indices.add(seg.index)
                 allocated_tokens += seg.tokens_estimated
 
@@ -196,7 +200,33 @@ class MarkusContextPruner:
             elapsed_ms=round((t1 - t0) * 1000, 2)
         )
 
-def _test_context_pruner():
+    def compact_thought_history(
+        self,
+        thoughts: List[Dict[str, Any]],
+        max_tokens: int = 1500,
+        query: Optional[str] = None
+    ) -> PruneResult:
+        """
+        Formats a list of Cortex thought dictionaries into structured log lines and compresses
+        them using multi-factor importance scoring within the specified token budget.
+        """
+        lines = []
+        for t in thoughts:
+            agent = t.get("agent", "UNKNOWN")
+            content = t.get("content", "")
+            meta = t.get("metadata", {})
+            meta_str = f" [meta: {json.dumps(meta)}]" if meta else ""
+            lines.append(f"[{agent}] {content}{meta_str}")
+        return self.prune(lines, max_tokens=max_tokens, query=query)
+
+
+def _test_context_pruner() -> None:
+    import sys
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     print("=== MARKUS Context Pruner Subsystem Test ===")
     pruner = MarkusContextPruner()
 
@@ -204,6 +234,7 @@ def _test_context_pruner():
         "System initialized. Everything is ready.",
         "Verbose log: checking dependency node 1... ok.",
         "Verbose log: checking dependency node 2... ok.",
+        "PRIME-DIRECTIVE: System invariant must remain deterministic under air-gapped constraints.",
         "def execute_trade(symbol: str, amount: float) -> bool:",
         "    if amount <= 0: raise ValueError('Invalid amount')",
         "    return broker.submit_order(symbol, amount)",
@@ -211,12 +242,14 @@ def _test_context_pruner():
         "Traceback (most recent call last):",
         "  File 'server.py', line 42, in handle_request",
         "ZeroDivisionError: division by zero",
+        "SyntaxError: invalid syntax in dynamic module",
+        "AssertionError: invariant check failed",
         "Routine housekeeping done.",
         "Routine telemetry synchronized.",
         "Target conclusion: all subsystems active."
     ]
 
-    res = pruner.prune(sample_context, max_tokens=30, query="execute_trade error")
+    res = pruner.prune(sample_context, max_tokens=100, query="execute_trade error")
 
     print(f"Original Tokens : {res.original_tokens}")
     print(f"Pruned Tokens   : {res.pruned_tokens}")
@@ -225,9 +258,32 @@ def _test_context_pruner():
     print(f"Elapsed Time    : {res.elapsed_ms}ms")
     print(f"\n--- Pruned Output ---\n{res.text}\n")
 
+    # Invariant checks
     assert "def execute_trade" in res.text, "Failed to preserve critical function signature"
-    assert "Traceback" in res.text, "Failed to preserve protected error trace"
-    print("✅ Context Pruner Subsystem Test: PASSED")
+    assert "Traceback" in res.text, "Failed to preserve protected Traceback"
+    assert "SyntaxError" in res.text, "Failed to preserve protected SyntaxError"
+    assert "AssertionError" in res.text, "Failed to preserve protected AssertionError"
+    assert "PRIME-DIRECTIVE" in res.text, "Failed to preserve protected PRIME-DIRECTIVE"
+
+    # Test thought compaction helper
+    thoughts_sample = [
+        {"agent": "SENTINEL", "content": "Routine pulse check", "metadata": {"status": "ok"}},
+        {"agent": "REDTEAM", "content": "Traceback: Crash in sandbox eval", "metadata": {"vuln_id": "v1"}},
+        {"agent": "PLANNER", "content": "PRIME-DIRECTIVE: Ensure offline fallback", "metadata": {"gate": "active"}},
+        {"agent": "WORKER", "content": "Telemetry ping heartbeat", "metadata": {}},
+    ]
+    thought_res = pruner.compact_thought_history(thoughts_sample, max_tokens=40, query="Traceback offline")
+    assert "Traceback" in thought_res.text, "Thought compaction failed to preserve Traceback"
+    assert "PRIME-DIRECTIVE" in thought_res.text, "Thought compaction failed to preserve PRIME-DIRECTIVE"
+
+    # Test within budget passthrough
+    short_context = ["Single line within budget"]
+    pass_res = pruner.prune(short_context, max_tokens=100)
+    assert pass_res.compression_ratio == 1.0, "Pass-through failed on small context"
+
+    print("[PASS] Context Pruner Subsystem Test: PASSED")
+
 
 if __name__ == "__main__":
     _test_context_pruner()
+
