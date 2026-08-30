@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import time
 import urllib.request
 import urllib.error
@@ -20,7 +21,29 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+# [◈VORPAL◈] Stealable: provider-aware circuit breaker from llm-circuit-breaker-py
+# Placed in VORPAL/CORE/llm_circuit_breaker - shared library for MARKUS router
+# Use os.path for MSYS-compatible path handling (Path.resolve mangles paths)
+_markus_dir = os.path.dirname(os.path.abspath(__file__))
+_vorpal_core = os.path.join(os.path.dirname(_markus_dir), "VORPAL", "CORE")
+sys.path.insert(0, _vorpal_core)
+try:
+    from llm_circuit_breaker import CircuitBreaker, BreakerConfig, predicates, CircuitOpenError
+    _HAS_BREAKER = True
+except Exception:  # pragma: no cover - graceful degradation
+    _HAS_BREAKER = False
+
 logger = logging.getLogger("Markus.BrainBackend")
+
+
+def contains_nous_error(msg: str) -> bool:
+    """Detect provider-side Nous/OpenAI-compatible error substrings.
+    Matches rate-limit, overloaded, server error, timeout — NOT auth/validation."""
+    msg_lower = msg.lower()
+    return any(tok in msg_lower for tok in (
+        "rate_limit", "rate limit", "overloaded", "server_error",
+        "timeout", "insufficient_quota", "model_timeout",
+    ))
 
 AUTH_JSON = Path(os.environ.get(
     "HERMES_AUTH_JSON",
@@ -64,6 +87,18 @@ COST_LEDGER = Path(os.environ.get(
     "C:/Users/jonny/OneDrive/Desktop/MARKUS-OS/markus_brain_cost_ledger.jsonl",
 ))
 _ledger_lock = __import__("threading").Lock()
+
+# [◈VORPAL◈] Provider-aware circuit breaker for inference API calls.
+# Only provider-side failures (rate limits, 5xx, timeouts) trip the breaker;
+# caller-side bugs (4xx auth/validation) pass through without poisoning it.
+if _HAS_BREAKER:
+    _brain_breaker = CircuitBreaker(BreakerConfig(
+        failure_threshold=int(os.environ.get("MARKUS_CB_THRESHOLD", "3")),
+        recovery_timeout_s=float(os.environ.get("MARKUS_CB_RECOVERY_S", "30.0")),
+        half_open_max_calls=1,
+    ))
+else:
+    _brain_breaker = None
 
 
 def estimate_cost(
@@ -179,9 +214,27 @@ def ask_brain(
         },
     )
     t0 = time.time()
-    try:
+    
+    # [◈VORPAL◈] Stealable circuit breaker integration: wrap the HTTP call
+    # so provider-side failures (rate limits, 5xx, timeouts) trip the breaker.
+    # Caller-side errors (auth, validation) pass through uncounted.
+    def _do_call():
         with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+            return resp.read().decode("utf-8")
+    
+    should_count = predicates.any_of(
+        # Nous / OpenAI-compatible errors in response body
+        lambda e: contains_nous_error(str(e)),
+        # HTTP status codes that are service-side
+        lambda e: hasattr(e, 'code') and predicates.is_http_status_service_failure(e.code),
+    ) if _HAS_BREAKER else None
+    
+    try:
+        if _brain_breaker is not None:
+            raw = _brain_breaker.call(_do_call, should_count=should_count)
+        else:
+            raw = _do_call()
+        data = json.loads(raw)
         reply = (data.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
         used_model = data.get("model", model)
         elapsed = time.time() - t0
@@ -195,6 +248,10 @@ def ask_brain(
             f"Brain reply via {used_model} in {elapsed:.1f}s "
             f"({p_tok}p+{c_tok}c tokens, ${cost:.8f})"
         )
+        # Report breaker state for observability
+        if _brain_breaker is not None:
+            st = _brain_breaker.stats()
+            logger.debug(f"Breaker: state={st.state}, failures={st.failure_count}")
         return reply or "(brain offline: empty reply)"
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")[:200]
