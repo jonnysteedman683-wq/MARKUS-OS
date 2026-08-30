@@ -54,6 +54,7 @@ from markus_kernel import MarkusKernel
 from markus_reflexion import ReflexionLoopEngine
 from markus_population_dice import PopulationDiceEngine
 from markus_redteam import RedTeamOrchestrator
+import markus_vault_sync as vs
 
 logger = logging.getLogger("Markus.CoEvolution")
 
@@ -88,6 +89,8 @@ class CoEvolutionOrchestrator:
         self.redteam_engine = RedTeamOrchestrator()
         self.cycle_counter = 0
         self._reward_log: List[Dict[str, Any]] = []
+        # AXIOM-VAULT port: emit run reports + lineage notes to the VORPAL Vault.
+        self.vault_sync = vs.MarkusVaultSync()
 
     # ─── Phase 1: Dice Roll + Debate ───
 
@@ -310,6 +313,18 @@ class CoEvolutionOrchestrator:
         self.cycle_counter += 1
         t0 = time.perf_counter()
 
+        # AXIOM-VAULT port: read operator overrides from the vault command center
+        # (00_COMMAND_CENTER.md). emergency_stop / pause_after_generation honored here.
+        try:
+            cmds = self.vault_sync.read_commands()
+        except Exception as exc:  # noqa: BLE001 — vault read must never break the cycle
+            logger.warning(f"[CoEvo] vault command read failed: {exc}")
+            cmds = {}
+        if cmds.get("emergency_stop"):
+            logger.warning("[CoEvo] Vault emergency_stop set — skipping cycle.")
+            return {"cycle_id": cycle_id, "skipped": True, "reason": "emergency_stop"}
+        pause_after = cmds.get("pause_after_generation")
+
         logger.info(f"\n{'='*60}")
         logger.info(f"Co-Evolution Cycle #{self.cycle_counter} (ID: {cycle_id})")
         logger.info(f"{'='*60}")
@@ -344,6 +359,7 @@ class CoEvolutionOrchestrator:
 
         # Phase 6c: Population Dice Evolution
         # Stolen pattern: tournament selection, exploit, explore, replace
+        pop_result = None
         try:
             pop_result = self.population_engine.evolve_generation(evaluations_per_genome=2)
             logger.info(f"[CoEvo] Population: gen={pop_result['generation']}, "
@@ -404,6 +420,33 @@ class CoEvolutionOrchestrator:
 
         logger.info(f"[CoEvo] Cycle complete in {cycle_elapsed:.2f}s")
         logger.info(f"[CoEvo] Result: {json.dumps(result, indent=2)}")
+
+        # AXIOM-VAULT port: emit run report + lineage note to the VORPAL Vault.
+        try:
+            run_data = {
+                "goal": action_label,
+                "status": f"VALIDATION_{'PASS' if validation_passed else 'FAIL'}"
+                          f"/HEALTH_{'HEALTHY' if health_passed else 'DEGRADED'}",
+                "divergence": round(cycle_elapsed, 4),
+                "mutations_count": patches_applied,
+                "best_fitness": round(reward, 4),
+                "incumbent_fitness": round(reward, 4),
+                "torus_size": pop_result.get("population_size", "—") if isinstance(pop_result, dict) else "—",
+                "llm_mode": cmds.get("llm_mode", "auto") if cmds else "auto",
+                "authors": [f"roll_{final_roll}"],
+                "code_snapshot": f"action={action_label} commit={commit_hash or 'none'}",
+                "verbosity": cmds.get("report_verbosity", 1) if cmds else 1,
+            }
+            self.vault_sync.log_run_report(self.cycle_counter, run_data)
+            self.vault_sync.log_lineage_note(self.cycle_counter, run_data)
+            if pause_after is not None and self.cycle_counter >= pause_after:
+                logger.info(f"[CoEvo] Reached cycle {self.cycle_counter} >= pause_after {pause_after}. Halting daemon.")
+                raise SystemExit(0)
+        except SystemExit:
+            raise
+        except Exception as exc:  # noqa: BLE001 — vault emit must never break the cycle
+            logger.warning(f"[CoEvo] vault run-report emit failed: {exc}")
+
         return result
 
     async def run_daemon(self, interval_s: float = 60.0) -> None:
