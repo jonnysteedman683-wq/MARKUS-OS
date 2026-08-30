@@ -94,13 +94,16 @@ def main() -> int:
         idx2 = bridge.lineage_index.read_text(encoding="utf-8")
         ok &= gate("index idempotent (single row)", idx2.count("lineage_run_0001") == 1)
 
-        # G9: architecture link note
+        # G9: architecture link note + diagram copied into vault
         link = bridge.ensure_architecture_link()
         ok &= gate("architecture link written", link.exists() and "Architecture" in link.read_text())
+        arch_in_vault = vault / vs.ARCH_DOC_REL
+        ok &= gate("architecture diagram copied to vault",
+                   arch_in_vault.exists() and arch_in_vault.stat().st_size > 1000)
 
     print("-" * 50)
     if ok:
-        print("PASS — markus_vault_sync verified (9 gates)")
+        print("PASS — markus_vault_sync verified (10 gates)")
         return 0
     print("FAIL — markus_vault_sync verification failed")
     return 1
