@@ -91,6 +91,11 @@ class CoEvolutionOrchestrator:
         self._reward_log: List[Dict[str, Any]] = []
         # AXIOM-VAULT port: emit run reports + lineage notes to the VORPAL Vault.
         self.vault_sync = vs.MarkusVaultSync()
+        # Surface the architecture diagram + link note into the vault on boot.
+        try:
+            self.vault_sync.ensure_architecture_link()
+        except Exception as exc:  # noqa: BLE001 — non-critical
+            logger.warning(f"[CoEvo] vault architecture link failed: {exc}")
 
     # ─── Phase 1: Dice Roll + Debate ───
 
