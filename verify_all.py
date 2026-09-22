@@ -17,6 +17,7 @@ HARNESSES = [
     ("hermes_verify_vorpal_bridge.py", "Bidirectional VORPAL Goal DAG & Telemetry Bridge"),
     ("hermes_verify_markus_brain.py", "Brain Backend & Nous Key Alignment"),
     ("markus_ui_db.py", "UI OS Database & Session Registers"),
+    ("hermes_verify_markus_vault_sync.py", "Vault Run-Sync Bridge (AXIOM port)"),
 ]
 
 def main() -> int:
