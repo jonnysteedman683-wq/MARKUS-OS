@@ -1,8 +1,25 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn } = require('child_process');
+const http = require('http');
 const path = require('path');
 
 let pyProc = null;
+
+// Narrow IPC: surface MARKUS server health to the renderer through the
+// secure preload bridge (never raw ipcRenderer — contextIsolation: true).
+ipcMain.handle('markus:health', () => new Promise((resolve) => {
+  const req = http.get({ host: '127.0.0.1', port: 8128, path: '/api/health', timeout: 2500 }, (res) => {
+    let body = '';
+    res.on('data', (c) => { body += c; });
+    res.on('end', () => {
+      let json = null;
+      try { json = JSON.parse(body); } catch (_) { /* keep null */ }
+      resolve({ status: res.statusCode, ok: res.statusCode === 200, body: body.slice(0, 512), json });
+    });
+  });
+  req.on('error', (err) => resolve({ status: 0, ok: false, error: err.message, body: '' }));
+  req.on('timeout', () => { req.destroy(); resolve({ status: 0, ok: false, error: 'timeout' }); });
+}));
 
 function createWindow() {
   const win = new BrowserWindow({

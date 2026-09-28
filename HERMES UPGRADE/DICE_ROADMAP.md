@@ -282,3 +282,103 @@ Low
 - HERMES 7: Dice Panel plugin updated to Triad Dice Engine (18-slot). node --check PASS.
 - Bridge telemetry refreshed -> VORPAL/EVOLVE/MARKUS_TELEMETRY.json.
 - Rewards: 7=1.0, 3=1.0, 14=1.0 (VORPAL slot first reward). skill v2.0.2.
+
+## 2026-09-27T06:07:50+10:00 — mode=triad
+- Coin gate: PASS
+- Lead system: HERMES
+- HERMES slot 12: DOUBLE_REROLL -> 2 extra dice
+- HERMES slot 8: UPGRADE_HERMES_BACKEND
+    target: hermes config CLI: providers, models, gateway, MCP (setup_mcp), cron (cronjob)
+    next: Load hermes-agent skill; hermes config set ...; audit MCP servers; review cron jobs
+- HERMES slot 9: UPGRADE_HERMES_FRONTEND
+    target: hermes-desktop-plugins, preview widgets, ::preview{file=...} pages, inline chat widgets
+    next: Build/extend a desktop plugin or chat widget; deliver as ::preview{file=...}
+- MARKUS slot 6: DOUBLE_REROLL -> 2 extra dice
+- MARKUS slot 2: UPGRADE_MARKUS_BACKEND
+    target: markus_server.py (8128), markus_kernel.py, markus_router.py, phoenix_*.py
+    next: py_compile touched files; restart server; curl http://localhost:8128/api/health
+- MARKUS slot 5: RESEARCH_MARKUS_ROADMAP
+    target: markus_web_research.py -> research/evolutionary_loop_roadmap.md + DICE_ROADMAP.md
+    next: Run markus_web_research.py; append findings to research/evolutionary_loop_roadmap.md and DICE_ROADMAP.md
+- VORPAL slot 14: UPGRADE_VORPAL_LINGUA
+    target: Desktop/VORPAL: LINGUA/ (lingua_prima, lp_tool, LINGUA_PROTOCOL.md)
+    next: Edit LINGUA modules; run lingua harnesses; py_compile; commit
+- Curation die: OPTIMISE — Tune a skill description/trigger (skill-creator run_loop) or merge near-identical skills.
+- Status: EXECUTED (log this cycle in DICE_ROADMAP.md)
+
+## 2026-09-27T06:13:23+10:00 — mode=triad
+- Coin gate: PASS
+- Lead system: VORPAL
+- HERMES slot 12: DOUBLE_REROLL -> 2 extra dice
+- HERMES slot 10: OPTIMISE_HERMES_PROCESS
+    target: tool batching, memory hygiene, skill loading, adaptive-model-switcher routing
+    next: Audit skills_list for stale entries; run adaptive-model-switcher; prune memory with the memory tool
+- HERMES slot 11: RESEARCH_HERMES_ROADMAP
+    target: hermes docs https://hermes-agent.nousresearch.com/docs + web_search -> DICE_ROADMAP.md
+    next: Read hermes-agent skill + docs; web_search new capabilities; append findings to DICE_ROADMAP.md
+- MARKUS slot 4: OPTIMISE_MARKUS_PROCESS
+    target: markus_latency_multi_upgrade.py, markus_task_dag.py, markus_devswarm.py, markus_resilience.py, cron/schtasks
+    next: Run python markus_benchmark.py; profile hot paths; tune worker pools/DAG
+- VORPAL slot 13: UPGRADE_VORPAL_CORE
+    target: Desktop/VORPAL: CORE/*.py (kernel, syscalls, shell, safety_gate, state_memory_manager, ark_*.py)
+    next: py_compile CORE/*.py; verify VORPAL harnesses (VERIFY/harnesses); commit to Desktop/VORPAL
+- Curation die: CURATE — Inventory skills (skills_list); find stale/[SKILL_PRUNED]/duplicate skills; prune or consolidate via skill_manage delete absorbed_into=...
+- Status: EXECUTED (log this cycle in DICE_ROADMAP.md)
+
+## 2026-09-27T06:13+10:00 — cycle triad (roll 2026-09-27T06:13:23)
+- Coin PASS · lead VORPAL · slots: HERMES 12(reroll)->10+11, MARKUS 4, VORPAL 13 · curation CURATE(1)
+
+## CYCLE EXECUTION — TRIAD (verified)
+- HERMES slot 10 OPTIMISE: memory hygiene via memory tool — corrected stale VORPAL location fact (consolidated brain = Desktop/AQ/ARK, not Desktop/VORPAL SKILLCLAW export) + consolidated THE ORDER entries. Skills audit: 136 skills, 0 [SKILL_PRUNED], 0 duplicates. VERIFIED by memory write (3 ops applied).
+- HERMES slot 11 RESEARCH: read hermes docs (hermes-agent.nousresearch.com/docs) via web_extract. Findings below.
+- MARKUS slot 4 OPTIMISE: `python markus_benchmark.py` (7 models, exit 0, saved markus_benchmark_output.json). Calibrated markus_adaptive_matrix.DEFAULT_MODELS to FRESH measured latencies (deepseek-v4-flash@100ms ADDED w1.5, laguna 600->300ms w1.0, deepseek-pro 300->500ms w0.6, ling 200->700ms w0.5). Verified: py_compile OK, calibration assert (100->1.5,300->1.0,700->0.5), FAST_CODE picks deepseek-v4-flash, hermes_verify_adaptive_matrix.py OVERALL PASS. NOTE: MARKUS server 8128 down (connection refused) so no live /api/health; slot 4 is benchmark-driven, server not required.
+- VORPAL slot 13 UPGRADE_CORE: real brain = Desktop/AQ/ARK (git). Added kernel status(pid) read-only syscall + wired into shell.py; fixed 4 tier_1 harnesses' stale Desktop/ARK hardcoded paths -> derive from harness location. T1 gate hermes_verify_ark_t1_coverage.py now PASS (was VERIFY_FAIL on 3 stale-path harnesses). Committed ea4217e (6 files). NOTE: fake goals (ARK-STATE/GOALS.md shows TEST GOALS) left untouched — mapped to VORPAL slot 16, this cycle landed slot 13.
+- Curation die CURATE: skills inventory clean (136, 0 pruned, 0 dupes) -> honest no-op + memory correction is this cycle's curation-adjacent durable fix.
+
+## HERMES RESEARCH FINDINGS (slot 11) — 2026-09-27
+- Hermes Agent is Nous Research's self-improving agent: agent-curated memory + autonomous skill creation + FTS5 cross-session recall + Honcho dialectic user modeling (closed learning loop).
+- 7 terminal backends: local, Docker, SSH, Daytona, Singularity, Modal, Vercel Sandbox; Daytona/Modal offer serverless hibernation (nearly-zero idle cost).
+- 20+ gateway platforms: Telegram, Discord, Slack, WhatsApp, Email, Teams, Google Chat, etc.
+- New capabilities to wire into MARKUS/HERMES: Bot Mode (durable specialist team, group chats, @mentions), scripts packaging, programmatic Tool Calling via execute_code (collapses multi-step pipelines into single inference), MCP tool filtering, Voice Mode (real-time in CLI/Telegram/Discord/VC), Personality via SOUL.md, context files, command approval security layer.
+- Machine-readable docs: /docs/llms.txt (~17KB) + /docs/llms-full.txt (~1.8MB) — usable as LLM context for future research topics.
+- Action items: (a) enabled comms -> try Bot Mode for a durable MARKUS-facing bot; (b) no-op since web tools disabled but gh CLI covers GitHub releases; (c) consider serverless Modal/Daytona backend for a disposable MARKUS worker.
+
+## 2026-09-28T16:02:45+10:00 — mode=triad
+- Coin gate: PASS
+- Lead system: VORPAL
+- HERMES slot 7: UPGRADE_HERMES_UI
+    target: Hermes desktop: theme tokens, panes, chat surface (hermes-desktop-plugins skill)
+    next: Follow hermes-desktop-plugins skill; edit theme tokens / build a pane plugin
+- MARKUS slot 6: DOUBLE_REROLL -> 2 extra dice
+- MARKUS slot 5: RESEARCH_MARKUS_ROADMAP
+    target: markus_web_research.py -> research/evolutionary_loop_roadmap.md + DICE_ROADMAP.md
+    next: Run markus_web_research.py; append findings to research/evolutionary_loop_roadmap.md and DICE_ROADMAP.md
+- MARKUS slot 3: UPGRADE_MARKUS_FRONTEND
+    target: electron-main.js, electron-preload.js, package.json, hive-core/ frontend, markus-os-electron/
+    next: npm install per package.json; electron smoke test
+- VORPAL slot 14: UPGRADE_VORPAL_LINGUA
+    target: Desktop/VORPAL: LINGUA/ (lingua_prima, lp_tool, LINGUA_PROTOCOL.md)
+    next: Edit LINGUA modules; run lingua harnesses; py_compile; commit
+- Curation die: OPTIMISE — Tune a skill description/trigger (skill-creator run_loop) or merge near-identical skills.
+- Status: EXECUTED (log this cycle in DICE_ROADMAP.md)
+
+## 2026-09-28T16:03:42+10:00 — mode=triad
+- Coin gate: PASS
+- Lead system: MARKUS
+- HERMES slot 7: UPGRADE_HERMES_UI
+    target: Hermes desktop: theme tokens, panes, chat surface (hermes-desktop-plugins skill)
+    next: Follow hermes-desktop-plugins skill; edit theme tokens / build a pane plugin
+- MARKUS slot 1: UPGRADE_MARKUS_UI
+    target: markus_chat.html, markus-os.html, the-orb.html, memory-palace.html, hack-console.html
+    next: Edit the listed HTML under Desktop/MARKUS-OS; smoke-test via python launch_markus_app.py
+- VORPAL slot 14: UPGRADE_VORPAL_LINGUA
+    target: Desktop/VORPAL: LINGUA/ (lingua_prima, lp_tool, LINGUA_PROTOCOL.md)
+    next: Edit LINGUA modules; run lingua harnesses; py_compile; commit
+- Curation die: CURATE+ENHANCE — Run CURATE then ENHANCE.
+- Status: EXECUTED (log this cycle in DICE_ROADMAP.md)
+
+## 2026-09-28 — TRIAD cycle EXECUTION (lead=VORPAL)
+- VORPAL slot 14 [VERIFIED]: repaired AQ/ARK scripts/lp_tool.py -> working Lingua Prima CLI (enc/dec/compress/expand/status) via canonical OMNIPRIME engine; shell selftest 9/9; T1 harness PASS; committed AQ/ARK f740d5f
+- MARKUS slot 3 [VERIFIED]: electron-main.js + electron-preload.js -> added safe `markus:health` IPC bridge (contextIsolation preserved); node --check green
+- MARKUS slot 5 [VERIFIED]: markus_web_research.py ran with 8 live web findings on multi_model_routing appended to research/evolutionary_loop_roadmap.md
+- VORPAL bridge snapshot: telemetry -> Desktop/VORPAL/EVOLVE/MARKUS_TELEMETRY.json

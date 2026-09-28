@@ -392,3 +392,41 @@ High
 2. Generate PHOENIX CLI module for AST validation
 3. Test with existing test suite
 4. Commit with conventional commit format
+
+## 2026-09-28T16:21:16+1000 — Dice Research Slot: multi_model_routing
+Live web findings: yes
+
+### All findings (8)
+- vLLM: High-throughput LLM inference with PagedAttention
+- TGI: HuggingFace Text Generation Inference with continuous batching
+- Ollama: Local model serving with ModELFUSE pipeline
+- OpenRouter: Unified API with performance-based routing
+- Adaptive Model Switcher: Real-time reliability scoring
+- LLM-based multi-agent orchestration taxonomy: centralized/decentralized/hierarchical + dynamic-adaptivity axis
+- MCP (agent-to-tool) and A2A (agent-to-agent) occupy complementary, non-collapsing protocol layers
+- 57.3% orgs have agents in production (LangChain 2025); Gartner: 40% enterprise app penetration by 2026 but >40% of agentic projects canceled by 2027
+
+## Improvement Proposal: Multi Model Routing
+
+### Current MARKUS Coverage
+Medium - Adaptive matrix
+
+### Key Findings from Research
+- vLLM: High-throughput LLM inference with PagedAttention
+- TGI: HuggingFace Text Generation Inference with continuous batching
+- Ollama: Local model serving with ModELFUSE pipeline
+
+### Identified Tradeoffs
+
+
+### Proposed Enhancement
+Real-time reliability scoring
+
+### Effort Estimate
+Low
+
+### Next Steps
+1. Create implementation plan for Real-time reliability scoring
+2. Generate PHOENIX CLI module for AST validation
+3. Test with existing test suite
+4. Commit with conventional commit format
