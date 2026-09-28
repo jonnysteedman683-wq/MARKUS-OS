@@ -132,7 +132,13 @@ class ResilientEndpoint:
         try:
             yield self
         except Exception as e:
-            self._record_failure(e, self.context.snapshot_registers or {})
+            self.context.snapshot_registers.setdefault("endpoint", self.name)
+            self._record_failure(e, self.context.snapshot_registers)
+            # Mirror protected_call() trip logic: open the circuit once the
+            # failure threshold is reached so follow-up calls fast-fail.
+            if self.context.failures >= self.max_failures:
+                self.context.state = CircuitState.OPEN
+                self.context.last_failure_time = time.time()
             raise
 
 class CircuitBreakerManager:
@@ -172,6 +178,17 @@ if __name__ == "__main__":
         pass
     except ConnectionError as e:
         pass
+
+    # Verify context-manager path also trips the circuit after threshold
+    ctx_ep = manager.register("protect-trip-test", max_failures=2, cooldown_s=60.0)
+    for i in range(3):
+        try:
+            with ctx_ep.protect():
+                raise ConnectionError(f"Simulated ctx failure {i}")
+        except ConnectionError as e:
+            pass
+    assert ctx_ep.context.state == CircuitState.OPEN, "protect() should trip circuit after threshold"
+    print("protect() circuit-trip verified: state = OPEN after threshold")
 
     print("=== MARKUS Resilience Engine State ===")
     print(f"Endpoint States: {manager.get_all_states()}")
