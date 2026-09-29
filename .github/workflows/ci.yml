@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: markus-os-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: OMNIPRIME Dual Super-Agent Verification Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 🔍 Compile Gate (Syntax & Bytecode Validation)
+        run: |
+          echo "Compiling all Python modules..."
+          python -m compileall -q -x 'node_modules|\.git|__pycache__' .
+          echo "✅ All Python files compiled cleanly."
+
+      - name: 🔬 Run Master Verification Suite (verify_all.py)
+        run: |
+          python verify_all.py

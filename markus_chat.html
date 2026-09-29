@@ -144,7 +144,27 @@
       transition: transform 0.1s, box-shadow 0.2s;
     }
     .send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,255,136,0.3); }
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        /* Keyboard-navigation focus visibility (WCAG 2.4.7) */
+        :focus-visible {
+          outline: 2px solid var(--cyan);
+          outline-offset: 2px;
+          border-radius: 4px;
+        }
+        .skip-link {
+          position: absolute;
+          left: -9999px;
+          top: 0;
+          background: var(--cyan);
+          color: #000;
+          padding: 8px 14px;
+          border-radius: 0 0 8px 0;
+          font-weight: 600;
+          z-index: 100;
+        }
+        .skip-link:focus {
+                  left: 0;
+                }
     .status-bar {
       display: flex;
       justify-content: space-between;
@@ -218,9 +238,10 @@
   </style>
 </head>
 <body>
+    <a class="skip-link" href="#messages">Skip to conversation</a>
     <!-- Top Action Bar -->
     <div style="position: fixed; top: 20px; right: 20px; z-index: 50; display: flex; gap: 8px;">
-      <button id="diceRollBtn" style="
+      <button id="diceRollBtn" aria-label="Roll the dice engine" title="Roll the dice engine" style="
         background: rgba(0, 240, 255, 0.15);
         color: var(--cyan);
         border: 1px solid rgba(0, 240, 255, 0.4);
@@ -236,17 +257,17 @@
         transition: all 0.2s;
       "><span id="diceIcon">🎲</span> <span id="diceBtnText">Roll Dice</span></button>
 
-      <button id="historyToggle" style="
-        background: rgba(0, 255, 136, 0.1);
-        color: var(--emerald);
-        border: 1px solid rgba(0, 255, 136, 0.3);
-        padding: 6px 10px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.8em;
-        backdrop-filter: blur(5px);
-      ">◂ History ▾</button>
-      <div id="historyPanel"></div>
+      <button id="historyToggle" aria-label="Toggle conversation history panel" aria-expanded="false" aria-controls="historyPanel" style="
+              background: rgba(0, 255, 136, 0.1);
+              color: var(--emerald);
+              border: 1px solid rgba(0, 255, 136, 0.3);
+              padding: 6px 10px;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 0.8em;
+              backdrop-filter: blur(5px);
+            ">◂ History ▾</button>
+            <div id="historyPanel" role="region" aria-label="Conversation history"></div>
     </div>
 
   <div class="chat-container">
@@ -260,7 +281,7 @@
       </div>
     </div>
 
-    <div id="messages" class="messages-area">
+    <div id="messages" class="messages-area" role="log" aria-live="polite" aria-relevant="additions text" aria-label="MARKUS conversation">
       <div class="message-bubble system-msg">
         MARKUS OS online. Type your intent below.
         <div class="msg-meta">System Boot • Connected to Cortex DB</div>
@@ -505,9 +526,11 @@
 
     // ─── History Panel ────────────────────────────────────────────────────
     document.getElementById('historyToggle').addEventListener('click', () => {
-      const panel = document.getElementById('historyPanel');
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    });
+          const panel = document.getElementById('historyPanel');
+          const isOpen = panel.style.display === 'block';
+          panel.style.display = isOpen ? 'none' : 'block';
+          document.getElementById('historyToggle').setAttribute('aria-expanded', String(!isOpen));
+        });
 
     // ─── Dice Roll Handler ────────────────────────────────────────────────
     const diceRollBtn = document.getElementById('diceRollBtn');

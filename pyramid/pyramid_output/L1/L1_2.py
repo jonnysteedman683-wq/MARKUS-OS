@@ -13,11 +13,11 @@ GENERATIONAL SUICIDE PROTOCOL:
 
 EVENT BUS PAYLOAD:
 {
-    "event_id": "EVT_1787948271",
-    "dice_roll": 33,
-    "action_label": "TECH_DEBT_PAYDOWN",
+    "event_id": "EVT_1789578725",
+    "dice_roll": 31,
+    "action_label": "DOCUMENTATION_REFACTOR",
     "current_gate": 2,
-    "max_gate": 4,
+    "max_gate": 9,
     "parent_ref": "L1_2",
     "generation": 1,
     "reallocated_from": null,
@@ -28,7 +28,7 @@ EVENT BUS PAYLOAD:
         "child_sequence": 2,
         "grandparent": "F1"
     },
-    "propagated_at": 1787948271.2901928
+    "propagated_at": 1789578727.0509145
 }
 """
 
@@ -83,7 +83,7 @@ class EventBus:
         }
 
 # Deserialize inherited event bus
-EVENT_BUS = EventBus(**json.loads('{"event_id": "EVT_1787948271", "dice_roll": 33, "action_label": "TECH_DEBT_PAYDOWN", "current_gate": 2, "max_gate": 4, "parent_ref": "L1_2", "generation": 1, "reallocated_from": null, "payload": {"initiator": "F1_ApexGatekeeper", "protocol": "generational_suicide", "parent_id": "L1_2", "child_sequence": 2, "grandparent": "F1"}, "propagated_at": 1787948271.2901928}'))
+EVENT_BUS = EventBus(**json.loads('{"event_id": "EVT_1789578725", "dice_roll": 31, "action_label": "DOCUMENTATION_REFACTOR", "current_gate": 2, "max_gate": 9, "parent_ref": "L1_2", "generation": 1, "reallocated_from": null, "payload": {"initiator": "F1_ApexGatekeeper", "protocol": "generational_suicide", "parent_id": "L1_2", "child_sequence": 2, "grandparent": "F1"}, "propagated_at": 1789578727.0509145}'))
 
 # ============================================================================
 # AGENT IDENTITY
@@ -93,7 +93,7 @@ AGENT_ID = "L1_2"
 AGENT_LEVEL = 1
 AGENT_POSITION = 2
 PARENT_AGENT_ID = "F1"
-WORKSPACE = Path("C:\Users\jonny\OneDrive\Desktop\MARKUS-OS\pyramid\pyramid_output")
+WORKSPACE = Path("C:/Users/jonny/OneDrive/Desktop/MARKUS-OS/pyramid/pyramid_output")
 
 # ============================================================================
 # LIFECYCLE PHASES

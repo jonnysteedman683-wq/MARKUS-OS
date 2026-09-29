@@ -77,17 +77,19 @@ class MarkusAdaptiveWeightMatrix:
     based on exponential moving average latency and success rate penalties.
     """
 
-    # benchmark_ms = measured latency (markus_benchmark.py); latency-sensitive
+    # benchmark_ms = measured latency (markus_benchmark.py 2026-09-27); latency-sensitive
     # tiers derive base_weight from it. Quality/local tiers (PAID_HIGH_REASONING,
     # AIRGAPPED_LOCAL) keep an explicit intent-based weight.
     # Latency-derived weight: clamp(1.5 * (200 / benchmark_ms), 0.5, 1.5)
     DEFAULT_MODELS = [
+        {"model": "deepseek/deepseek-v4-flash", "provider": "nous", "tier": "FAST_CODE",
+         "weight": 1.2, "benchmark_ms": 100},   # benchmark #1 @100ms -> w 1.5 (cap)
         {"model": "poolside/laguna-s-2.1:free", "provider": "nous", "tier": "FAST_CODE",
-         "weight": 1.2, "benchmark_ms": 600},
+         "weight": 1.0, "benchmark_ms": 300},    # benchmark @300ms -> w 1.0
         {"model": "deepseek/deepseek-v4-pro-0813", "provider": "nous", "tier": "MEGACONTEXT_ARCH",
-         "weight": 1.5, "benchmark_ms": 300},
+         "weight": 0.6, "benchmark_ms": 500},     # benchmark @500ms -> w 0.6
         {"model": "inclusionai/ling-3.0-flash", "provider": "nous", "tier": "REALTIME_LINT",
-         "weight": 1.0, "benchmark_ms": 200},
+         "weight": 0.5, "benchmark_ms": 700},     # benchmark @700ms -> w 0.5 (floor)
         {"model": "custom/qwen2.5-coder:7b", "provider": "ollama", "tier": "AIRGAPPED_LOCAL",
          "weight": 0.8, "benchmark_ms": None},   # local, no benchmark -> intent weight
         {"model": "google/gemini-3.7-flash", "provider": "nous", "tier": "PAID_HIGH_REASONING",

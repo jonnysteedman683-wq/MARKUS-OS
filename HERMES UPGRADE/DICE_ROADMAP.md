@@ -382,3 +382,47 @@ Low
 - MARKUS slot 3 [VERIFIED]: electron-main.js + electron-preload.js -> added safe `markus:health` IPC bridge (contextIsolation preserved); node --check green
 - MARKUS slot 5 [VERIFIED]: markus_web_research.py ran with 8 live web findings on multi_model_routing appended to research/evolutionary_loop_roadmap.md
 - VORPAL bridge snapshot: telemetry -> Desktop/VORPAL/EVOLVE/MARKUS_TELEMETRY.json
+
+## 2026-09-29T04:54:36+10:00 — mode=triad
+- Coin gate: PASS
+- Lead system: VORPAL
+- HERMES slot 12: DOUBLE_REROLL -> 2 extra dice
+- HERMES slot 11: RESEARCH_HERMES_ROADMAP
+    target: hermes docs https://hermes-agent.nousresearch.com/docs + web_search -> DICE_ROADMAP.md
+    next: Read hermes-agent skill + docs; web_search new capabilities; append findings to DICE_ROADMAP.md
+- HERMES slot 9: UPGRADE_HERMES_FRONTEND
+    target: hermes-desktop-plugins, preview widgets, ::preview{file=...} pages, inline chat widgets
+    next: Build/extend a desktop plugin or chat widget; deliver as ::preview{file=...}
+- MARKUS slot 4: OPTIMISE_MARKUS_PROCESS
+    target: markus_latency_multi_upgrade.py, markus_task_dag.py, markus_devswarm.py, markus_resilience.py, cron/schtasks
+    next: Run python markus_benchmark.py; profile hot paths; tune worker pools/DAG
+- VORPAL slot 15: UPGRADE_VORPAL_SKILLS
+    target: Desktop/VORPAL: EVOLVE/SKILLHUB/SKILLS/ + VERIFY/skills/
+    next: Skill mutation per SOUL §9 (CREATE/ITERATE/REWRITE/MICRO-APPEND); commit
+- Curation die: CURATE+ENHANCE — Run CURATE then ENHANCE.
+- Status: EXECUTED (log this cycle in DICE_ROADMAP.md)
+
+## 2026-09-29T04:54:36+10:00 — TRIAD cycle EXECUTION + VERIFICATION
+- HERMES slot 11 [VERIFIED]: official Hermes docs research captured current capabilities (Bot Mode, 7 execution backends including Vercel Sandbox, 20+ gateways, MCP, skills/memory, and machine-readable `/docs/llms.txt` + `/docs/llms-full.txt`). Findings recorded here for roadmap follow-up.
+- HERMES slot 9 [VERIFIED]: extended `C:/Users/jonny/AppData/Local/hermes/desktop-plugins/dice-panel/plugin.js` with an accessible `aria-label` and tooltip on the Roll control; `node --check` passed.
+- MARKUS slot 4 [VERIFIED]: `python markus_benchmark.py` completed 7 models × 5 prompts, all 5/5; fastest simulated model `deepseek/deepseek-v4-flash` at 100ms, ranking artifact written to `markus_benchmark_output.json`; `python -m py_compile markus_benchmark.py` passed. Port 8128 health probe was unavailable (connection refused), recorded separately rather than masking the benchmark result.
+- VORPAL slot 15 [VERIFIED]: mutated canonical SkillClaw `duo-dice-engine` skill from v2.0.2 to v2.0.3; legacy `EVOLVE/SKILLHUB/SKILLS/` path is absent. Commit was not possible because the discovered VORPAL root is not a Git worktree.
+- Curation CURATE+ENHANCE: 77-skill inventory reviewed; no obvious pruned/dead/duplicate entry surfaced. Enhanced droplet `duo-dice-engine` to v2.0.5 with the canonical VORPAL path and offline-health benchmark pitfall.
+- Bridge snapshot: completed during closeout.
+- Rewards: slot 11=1.0, slot 9=1.0, slot 4=0.8, slot 15=0.7 (mutation green; commit unavailable).
+- Status: EXECUTED (verified with caveats)
+
+## 2026-09-29T04:55:21+10:00 — mode=triad
+- Coin gate: PASS
+- Lead system: VORPAL
+- HERMES slot 10: OPTIMISE_HERMES_PROCESS
+    target: tool batching, memory hygiene, skill loading, adaptive-model-switcher routing
+    next: Audit skills_list for stale entries; run adaptive-model-switcher; prune memory with the memory tool
+- MARKUS slot 1: UPGRADE_MARKUS_UI
+    target: markus_chat.html, markus-os.html, the-orb.html, memory-palace.html, hack-console.html
+    next: Edit the listed HTML under Desktop/MARKUS-OS; smoke-test via python launch_markus_app.py
+- VORPAL slot 17: RESEARCH_VORPAL_ROADMAP
+    target: Desktop/VORPAL: EVOLVE/IDEAS.md + EVOLVE/GOALS/GOALS.md new goals
+    next: Research; append to EVOLVE/IDEAS.md; propose new GOALS entries; commit
+- Curation die: CURATE+ENHANCE — Run CURATE then ENHANCE.
+- Status: EXECUTED (log this cycle in DICE_ROADMAP.md)

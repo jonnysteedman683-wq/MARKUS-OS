@@ -1,5 +1,5 @@
 {
-  "timestamp": 1787736112.5786726,
+  "timestamp": 1790621724.1057758,
   "benchmark_results": {
     "results": [
       {
@@ -7,7 +7,7 @@
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -16,7 +16,7 @@
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -25,7 +25,7 @@
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -34,7 +34,7 @@
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -43,7 +43,7 @@
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -52,7 +52,7 @@
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -61,7 +61,7 @@
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -70,7 +70,7 @@
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -79,7 +79,7 @@
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
@@ -88,57 +88,102 @@
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/qwen-2.5-coder-32b-instruct:free",
+        "model_id": "deepseek/deepseek-v4-flash",
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 100.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/qwen-2.5-coder-32b-instruct:free",
+        "model_id": "deepseek/deepseek-v4-flash",
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 100.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/qwen-2.5-coder-32b-instruct:free",
+        "model_id": "deepseek/deepseek-v4-flash",
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 100.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/qwen-2.5-coder-32b-instruct:free",
+        "model_id": "deepseek/deepseek-v4-flash",
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 100.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/qwen-2.5-coder-32b-instruct:free",
+        "model_id": "deepseek/deepseek-v4-flash",
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 600.0,
+        "latency_ms": 100.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/deepseek-chat:free",
+        "model_id": "poolside/laguna-s-2.1:free",
+        "prompt_id": "code_simple",
+        "category": "coding",
+        "tokens": 120,
+        "latency_ms": 400.0,
+        "success": true,
+        "error": null
+      },
+      {
+        "model_id": "poolside/laguna-s-2.1:free",
+        "prompt_id": "code_api",
+        "category": "coding",
+        "tokens": 120,
+        "latency_ms": 400.0,
+        "success": true,
+        "error": null
+      },
+      {
+        "model_id": "poolside/laguna-s-2.1:free",
+        "prompt_id": "reasoning",
+        "category": "research",
+        "tokens": 120,
+        "latency_ms": 400.0,
+        "success": true,
+        "error": null
+      },
+      {
+        "model_id": "poolside/laguna-s-2.1:free",
+        "prompt_id": "quick_answer",
+        "category": "quick_answer",
+        "tokens": 120,
+        "latency_ms": 400.0,
+        "success": true,
+        "error": null
+      },
+      {
+        "model_id": "poolside/laguna-s-2.1:free",
+        "prompt_id": "debug",
+        "category": "coding",
+        "tokens": 120,
+        "latency_ms": 400.0,
+        "success": true,
+        "error": null
+      },
+      {
+        "model_id": "inclusionai/ling-3.0-flash",
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
@@ -147,7 +192,7 @@
         "error": null
       },
       {
-        "model_id": "openrouter/deepseek-chat:free",
+        "model_id": "inclusionai/ling-3.0-flash",
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
@@ -156,7 +201,7 @@
         "error": null
       },
       {
-        "model_id": "openrouter/deepseek-chat:free",
+        "model_id": "inclusionai/ling-3.0-flash",
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
@@ -165,7 +210,7 @@
         "error": null
       },
       {
-        "model_id": "openrouter/deepseek-chat:free",
+        "model_id": "inclusionai/ling-3.0-flash",
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
@@ -174,7 +219,7 @@
         "error": null
       },
       {
-        "model_id": "openrouter/deepseek-chat:free",
+        "model_id": "inclusionai/ling-3.0-flash",
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
@@ -183,181 +228,136 @@
         "error": null
       },
       {
-        "model_id": "openrouter/google/gemini-2.0-flash-exp:free",
+        "model_id": "deepseek/deepseek-v4-pro-0813",
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/google/gemini-2.0-flash-exp:free",
+        "model_id": "deepseek/deepseek-v4-pro-0813",
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/google/gemini-2.0-flash-exp:free",
+        "model_id": "deepseek/deepseek-v4-pro-0813",
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/google/gemini-2.0-flash-exp:free",
+        "model_id": "deepseek/deepseek-v4-pro-0813",
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/google/gemini-2.0-flash-exp:free",
+        "model_id": "deepseek/deepseek-v4-pro-0813",
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 500.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/mistral-7b-instruct:free",
+        "model_id": "google/gemini-3.7-flash",
         "prompt_id": "code_simple",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/mistral-7b-instruct:free",
+        "model_id": "google/gemini-3.7-flash",
         "prompt_id": "code_api",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/mistral-7b-instruct:free",
+        "model_id": "google/gemini-3.7-flash",
         "prompt_id": "reasoning",
         "category": "research",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/mistral-7b-instruct:free",
+        "model_id": "google/gemini-3.7-flash",
         "prompt_id": "quick_answer",
         "category": "quick_answer",
         "tokens": 120,
-        "latency_ms": 200.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       },
       {
-        "model_id": "openrouter/mistral-7b-instruct:free",
+        "model_id": "google/gemini-3.7-flash",
         "prompt_id": "debug",
         "category": "coding",
         "tokens": 120,
-        "latency_ms": 200.0,
-        "success": true,
-        "error": null
-      },
-      {
-        "model_id": "openrouter/microsoft/phi-3-mini-4k-instruct:free",
-        "prompt_id": "code_simple",
-        "category": "coding",
-        "tokens": 120,
-        "latency_ms": 700.0,
-        "success": true,
-        "error": null
-      },
-      {
-        "model_id": "openrouter/microsoft/phi-3-mini-4k-instruct:free",
-        "prompt_id": "code_api",
-        "category": "coding",
-        "tokens": 120,
-        "latency_ms": 700.0,
-        "success": true,
-        "error": null
-      },
-      {
-        "model_id": "openrouter/microsoft/phi-3-mini-4k-instruct:free",
-        "prompt_id": "reasoning",
-        "category": "research",
-        "tokens": 120,
-        "latency_ms": 700.0,
-        "success": true,
-        "error": null
-      },
-      {
-        "model_id": "openrouter/microsoft/phi-3-mini-4k-instruct:free",
-        "prompt_id": "quick_answer",
-        "category": "quick_answer",
-        "tokens": 120,
-        "latency_ms": 700.0,
-        "success": true,
-        "error": null
-      },
-      {
-        "model_id": "openrouter/microsoft/phi-3-mini-4k-instruct:free",
-        "prompt_id": "debug",
-        "category": "coding",
-        "tokens": 120,
-        "latency_ms": 700.0,
+        "latency_ms": 600.0,
         "success": true,
         "error": null
       }
     ],
     "ranking": {
-      "openrouter/google/gemini-2.0-flash-exp:free": {
-        "score": 0.8,
-        "avg_latency_ms": 200.0,
+      "deepseek/deepseek-v4-flash": {
+        "score": 0.9,
+        "avg_latency_ms": 100.0,
         "successful_tasks": 5,
         "total_tokens": 600
       },
-      "openrouter/mistral-7b-instruct:free": {
-        "score": 0.8,
-        "avg_latency_ms": 200.0,
-        "successful_tasks": 5,
-        "total_tokens": 600
-      },
-      "openrouter/deepseek-chat:free": {
+      "inclusionai/ling-3.0-flash": {
         "score": 0.7,
         "avg_latency_ms": 300.0,
         "successful_tasks": 5,
         "total_tokens": 600
       },
-      "nous/poolside/laguna-s-2.1:free": {
-        "score": 0.4,
-        "avg_latency_ms": 600.0,
+      "poolside/laguna-s-2.1:free": {
+        "score": 0.6,
+        "avg_latency_ms": 400.0,
         "successful_tasks": 5,
         "total_tokens": 600
       },
-      "openrouter/qwen-2.5-coder-32b-instruct:free": {
-        "score": 0.4,
-        "avg_latency_ms": 600.0,
+      "nous/poolside/laguna-s-2.1:free": {
+        "score": 0.5,
+        "avg_latency_ms": 500.0,
         "successful_tasks": 5,
         "total_tokens": 600
       },
       "nous/nemotron-3-ultra:free": {
-        "score": 0.3,
-        "avg_latency_ms": 700.0,
+        "score": 0.5,
+        "avg_latency_ms": 500.0,
         "successful_tasks": 5,
         "total_tokens": 600
       },
-      "openrouter/microsoft/phi-3-mini-4k-instruct:free": {
-        "score": 0.3,
-        "avg_latency_ms": 700.0,
+      "deepseek/deepseek-v4-pro-0813": {
+        "score": 0.5,
+        "avg_latency_ms": 500.0,
+        "successful_tasks": 5,
+        "total_tokens": 600
+      },
+      "google/gemini-3.7-flash": {
+        "score": 0.4,
+        "avg_latency_ms": 600.0,
         "successful_tasks": 5,
         "total_tokens": 600
       }
